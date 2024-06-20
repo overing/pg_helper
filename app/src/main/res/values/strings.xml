@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PG Helper</string>
+    <string name="about">PG Helper\n
+是一個 Pokemon GO 的輔助工具</string>
+    <string name="btn_close">關閉</string>
 </resources>
