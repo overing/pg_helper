@@ -16,7 +16,7 @@ public class QuickSettingTileService extends TileService {
 
     private static final String TAG = "QuickSettingTileService";
 
-    private static final String ACTION_UPDATE_TILE = "org.cyc.pg_helper.ACTION_UPDATE_TILE";
+    private static final String ACTION_UPDATE_TILE = "org.cyc.pg_helper.QuickSettingTileService.ACTION_UPDATE_TILE";
 
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
 
@@ -49,6 +49,7 @@ public class QuickSettingTileService extends TileService {
         Log.d(TAG, "onBind");
         IBinder result = super.onBind(intent);
         TileService.requestListeningState(this, new ComponentName(this, QuickSettingTileService.class.getName()));
+        updateTile();
         return result;
     }
 
@@ -62,8 +63,12 @@ public class QuickSettingTileService extends TileService {
     @Override
     public void onClick() {
         Log.d(TAG, "onClick");
-        PGHelperApp.from(this).ensureFloatingWindow();
-        updateTile();
+        PGHelperApp app = PGHelperApp.from(this);
+        if (app.isFloatingWindowServiceRunning()) {
+            FloatingWindowService.sendCloseBroadcast(this);
+        } else {
+            app.ensureFloatingWindow();
+        }
     }
 
     @Override

@@ -1,7 +1,10 @@
 package org.cyc.pg_helper;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.RectF;
 import android.graphics.PixelFormat;
 import android.os.IBinder;
@@ -19,18 +22,43 @@ import androidx.annotation.Nullable;
 import org.cyc.pg_helper.databinding.ViewFloatingWindowBinding;
 
 public class FloatingWindowService extends Service {
+
     private static final String TAG = "FloatingWindowService";
 
+    private static final String ACTION_CLOSE = "org.cyc.pg_helper.FloatingWindowService.ACTION_CLOSE";
+
+    private WindowManager mWindowManager;
     private ViewFloatingWindowBinding mBinding;
+
+    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d(TAG, "onReceive");
+            if (ACTION_CLOSE.equals(intent.getAction())) {
+                close();
+            }
+        }
+    };
+
+    public static void sendCloseBroadcast(Context context) {
+        Log.d(TAG, "sendCloseBroadcast");
+        Intent intent = new Intent(ACTION_CLOSE);
+        intent.setPackage(context.getPackageName());
+        context.sendBroadcast(intent);
+    }
 
     @Override
     public void onCreate() {
         Log.d(TAG, "onCreate");
         super.onCreate();
+        mWindowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         if (!PGHelperApp.from(this).tryCommitFloatingWindowServiceRunning()) {
             Log.w(TAG, "fw service duplication");
             stopSelf();
         }
+        QuickSettingTileService.sendUpdateBroadcast(this);
+        registerReceiver(mReceiver, new IntentFilter(ACTION_CLOSE), Context.RECEIVER_NOT_EXPORTED);
     }
 
     @Nullable
@@ -43,11 +71,11 @@ public class FloatingWindowService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "onStartCommand , " + startId);
+        int result = super.onStartCommand(intent, flags, startId);
         if (mBinding == null) {
             initUi();
         }
-        QuickSettingTileService.sendUpdateBroadcast(this);
-        return super.onStartCommand(intent, flags, startId);
+        return result;
     }
 
     private void initUi() {
@@ -66,14 +94,13 @@ public class FloatingWindowService extends Service {
         layoutParams.width = 512;
         layoutParams.height = 512;
 
-        final WindowManager windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
-        windowManager.addView(mBinding.root, layoutParams);
+        mWindowManager.addView(mBinding.root, layoutParams);
 
         final RectF touchOffset = new RectF();
 
         mBinding.button1.setOnClickListener(v -> {
             stopSelf();
-            windowManager.removeView(mBinding.root);
+            mWindowManager.removeView(mBinding.root);
             Intent backToHome = new Intent(getApplicationContext(), MainActivity.class);
             backToHome.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(backToHome);
@@ -83,8 +110,7 @@ public class FloatingWindowService extends Service {
             mBinding.closeConfirmView.setVisibility(View.VISIBLE);
         });
         mBinding.sureCloseButton.setOnClickListener(v -> {
-            stopSelf();
-            windowManager.removeView(mBinding.root);
+            close();
         });
         mBinding.cancelCloseButton.setOnClickListener(v -> {
             mBinding.closeConfirmView.setVisibility(View.GONE);
@@ -97,9 +123,9 @@ public class FloatingWindowService extends Service {
                     break;
 
                 case MotionEvent.ACTION_MOVE:
-                    layoutParams.x = (int) ((touchOffset.left + e.getRawX()) - touchOffset.right);
-                    layoutParams.y = (int) ((touchOffset.top + e.getRawY()) - touchOffset.bottom);
-                    windowManager.updateViewLayout(mBinding.root, layoutParams);
+                    layoutParams.x = (int) (touchOffset.left - touchOffset.right + e.getRawX());
+                    layoutParams.y = (int) (touchOffset.top - touchOffset.bottom + e.getRawY());
+                    mWindowManager.updateViewLayout(mBinding.root, layoutParams);
                     break;
             }
             return false;
@@ -109,8 +135,14 @@ public class FloatingWindowService extends Service {
     @Override
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
+        unregisterReceiver(mReceiver);
         PGHelperApp.from(this).setFloatingWindowServiceRunning(false);
         QuickSettingTileService.sendUpdateBroadcast(this);
         super.onDestroy();
+    }
+
+    private void close() {
+        stopSelf();
+        mWindowManager.removeView(mBinding.root);
     }
 }
