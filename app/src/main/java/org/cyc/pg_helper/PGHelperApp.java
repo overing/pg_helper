@@ -43,7 +43,7 @@ public class PGHelperApp extends Application {
     public boolean ensureFloatingWindow() {
         if (Settings.canDrawOverlays(this)) {
             if (!mFloatingWindowServiceRunning.get()) {
-                startService(new Intent(getApplicationContext(), FloatingWindowService.class));
+                startForegroundService(new Intent(getApplicationContext(), FloatingWindowService.class));
             }
             return true;
         }

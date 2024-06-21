@@ -1,0 +1,5 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/calculate_package_discounts"
+        android:title="禮包折扣計算" />
+</menu>
