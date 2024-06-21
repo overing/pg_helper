@@ -2,8 +2,8 @@ package org.cyc.pg_helper;
 
 import android.app.Service;
 import android.content.Intent;
+import android.graphics.RectF;
 import android.graphics.PixelFormat;
-import android.os.Build;
 import android.os.IBinder;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -11,8 +11,8 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 
@@ -23,14 +23,20 @@ public class FloatingWindowService extends Service {
 
     private ViewFloatingWindowBinding mBinding;
 
-    private double mTouchDownViewX;
-    private double mTouchDownViewY;
-    private double mTouchDownX;
-    private double mTouchDownY;
+    @Override
+    public void onCreate() {
+        Log.d(TAG, "onCreate");
+        super.onCreate();
+        if (!PGHelperApp.from(this).tryCommitFloatingWindowServiceRunning()) {
+            Log.w(TAG, "fw service duplication");
+            stopSelf();
+        }
+    }
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
+        Log.d(TAG, "onBind");
         return null;
     }
 
@@ -38,31 +44,32 @@ public class FloatingWindowService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "onStartCommand , " + startId);
         if (mBinding == null) {
-            Log.d(TAG, "onStartCommand: Create Floating Window");
             initUi();
         }
+        QuickSettingTileService.sendUpdateBroadcast(this);
         return super.onStartCommand(intent, flags, startId);
     }
 
     private void initUi() {
-        final WindowManager windowManager = (WindowManager)getSystemService(WINDOW_SERVICE);
         mBinding = ViewFloatingWindowBinding.inflate(LayoutInflater.from(getApplicationContext()));
 
         mBinding.closeConfirmView.setVisibility(View.GONE);
 
-        DisplayMetrics metrics = getApplicationContext().getResources().getDisplayMetrics();
         final WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams(
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-            PixelFormat.TRANSLUCENT);
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                PixelFormat.TRANSLUCENT);
 
         layoutParams.gravity = Gravity.CENTER;
         layoutParams.x = 0;
         layoutParams.y = 0;
-        layoutParams.width = (int)(metrics.widthPixels * .3f);
-        layoutParams.height = layoutParams.width;
+        layoutParams.width = 512;
+        layoutParams.height = 512;
 
+        final WindowManager windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         windowManager.addView(mBinding.root, layoutParams);
+
+        final RectF touchOffset = new RectF();
 
         mBinding.button1.setOnClickListener(v -> {
             stopSelf();
@@ -86,19 +93,24 @@ public class FloatingWindowService extends Service {
         mBinding.title.setOnTouchListener((v, e) -> {
             switch (e.getAction()) {
                 case MotionEvent.ACTION_DOWN:
-                    mTouchDownViewX = layoutParams.x;
-                    mTouchDownViewY = layoutParams.y;
-                    mTouchDownX = e.getRawX();
-                    mTouchDownY = e.getRawY();
+                    touchOffset.set(layoutParams.x, layoutParams.y, e.getRawX(), e.getRawY());
                     break;
-    
+
                 case MotionEvent.ACTION_MOVE:
-                    layoutParams.x = (int) ((mTouchDownViewX + e.getRawX()) - mTouchDownX);
-                    layoutParams.y = (int) ((mTouchDownViewY + e.getRawY()) - mTouchDownY);
+                    layoutParams.x = (int) ((touchOffset.left + e.getRawX()) - touchOffset.right);
+                    layoutParams.y = (int) ((touchOffset.top + e.getRawY()) - touchOffset.bottom);
                     windowManager.updateViewLayout(mBinding.root, layoutParams);
                     break;
             }
             return false;
         });
+    }
+
+    @Override
+    public void onDestroy() {
+        Log.d(TAG, "onDestroy");
+        PGHelperApp.from(this).setFloatingWindowServiceRunning(false);
+        QuickSettingTileService.sendUpdateBroadcast(this);
+        super.onDestroy();
     }
 }

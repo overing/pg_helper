@@ -18,7 +18,7 @@
                 "-c android.intent.category.LAUNCHER",
                 "-n org.cyc.pg_helper/.MainActivity"
             ],
-            "postLaunchPause": 600,
+            "postLaunchPause": 1000,
             "trace": true
         },
         {

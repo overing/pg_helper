@@ -10,17 +10,76 @@
             ],
             "presentation": {
                 "echo": true,
-                "reveal": "always",
+                "reveal": "silent",
                 "focus": false,
                 "panel": "shared",
                 "showReuseMessage": true,
-                "clear": false
+                "clear": true
             },
             "problemMatcher": [],
             "group": {
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "run emulator",
+            "type": "shell",
+            "group": "none",
+            "command": "emulator",
+            "args": [
+                "-avd",
+                "${input:avd_name}"
+            ],
+            "options": {
+                "cwd": "C:/sdks/adk/emulator"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "list emulator",
+            "type": "shell",
+            "group": "none",
+            "command": "emulator",
+            "args": [
+                "-list-avds"
+            ],
+            "options": {
+                "cwd": "C:/sdks/adk/emulator"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "install apk",
+            "type": "shell",
+            "command": "adb",
+            "args": [
+                "install",
+                "${workspaceRoot}/app/build/outputs/apk/debug/app-debug.apk"
+            ],
+            "group": "none",
+            "presentation": {
+                "reveal": "silent",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "dependsOn": ["run gradle"]
+        }
+    ],
+    "inputs": [
+        {
+            "type": "promptString",
+            "id": "avd_name",
+            "description": "Input avd name for execute",
+            "default": "Pixel_8_Pro_API_35"
         }
     ]
 }
