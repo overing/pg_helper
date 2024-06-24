@@ -1,6 +1,6 @@
 package org.cyc.pg_helper;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import android.app.Notification;
@@ -11,8 +11,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.graphics.RectF;
 import android.graphics.PixelFormat;
+import android.graphics.RectF;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
@@ -27,6 +27,7 @@ import android.view.SubMenu;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.PopupMenu;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -44,11 +45,11 @@ public class FloatingWindowService extends Service {
 
     private static final int NOTIFICATION_ID = 1234;
 
-    private static final HashMap<String, String> TypeUrls;
+    private static final LinkedHashMap<String, String> TypeUrls;
 
     private WindowManager mWindowManager;
-    private ViewFloatingWindowBinding mBinding;
-    private PopupMenu mMainMenu;
+    private ViewFloatingWindowBinding mWindowBinding;
+    private WindowManager.LayoutParams mWindowLayoutParams;
 
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
 
@@ -62,13 +63,25 @@ public class FloatingWindowService extends Service {
     };
 
     static {
-        HashMap<String, String> mapping = new HashMap<String, String>();
-        mapping.put("普", "https://wiki.52poke.com/wiki/%E4%B8%80%E8%88%AC%EF%BC%88%E5%B1%9E%E6%80%A7%EF%BC%89");
-        mapping.put("飛", "https://wiki.52poke.com/wiki/%E9%A3%9E%E8%A1%8C%EF%BC%88%E5%B1%9E%E6%80%A7%EF%BC%89");
-        mapping.put("火", "https://wiki.52poke.com/wiki/%E7%81%AB%EF%BC%88%E5%B1%9E%E6%80%A7%EF%BC%89");
-        mapping.put("超", "https://wiki.52poke.com/wiki/%E8%B6%85%E8%83%BD%E5%8A%9B%EF%BC%88%E5%B1%9E%E6%80%A7%EF%BC%89");
-        mapping.put("水", "https://wiki.52poke.com/wiki/%E6%B0%B4%EF%BC%88%E5%B1%9E%E6%80%A7%EF%BC%89");
-        // TODO: 補完其他?
+        LinkedHashMap<String, String> mapping = new LinkedHashMap<String, String>();
+        mapping.put("普", "格");
+        mapping.put("飛", "電冰岩　　/　　草格蟲");
+        mapping.put("火", "水地岩　　/　草冰蟲鋼");
+        mapping.put("超", "蟲幽惡　　/　　　格毒");
+        mapping.put("水", "電草　　　/　　火地岩");
+        mapping.put("蟲", "火飛岩　　/　　草超惡");
+        mapping.put("電", "地　　　　/　　　水飛");
+        mapping.put("岩", "水草格地鋼/　火冰飛蟲");
+        mapping.put("草", "火冰毒飛蟲/　　水地岩");
+        mapping.put("幽", "幽惡　　　/　　　超幽");
+        mapping.put("冰", "火格岩鋼　/　草地飛龍");
+        mapping.put("龍", "冰龍妖　　/　　　　龍");
+        mapping.put("格", "飛超妖　　/普冰岩惡鋼");
+        mapping.put("惡", "格蟲妖　　/　　　超幽");
+        mapping.put("毒", "地超　　　/　　　草妖");
+        mapping.put("鋼", "火格地　　/　　冰岩妖");
+        mapping.put("地", "水草冰　　/火電毒岩鋼");
+        mapping.put("妖", "毒鋼　　　/　　格龍惡");
         TypeUrls = mapping;
     }
 
@@ -104,7 +117,7 @@ public class FloatingWindowService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "onStartCommand , " + startId);
-        if (mBinding == null) {
+        if (mWindowBinding == null) {
             initUi();
         }
 
@@ -127,79 +140,188 @@ public class FloatingWindowService extends Service {
     }
 
     private void initUi() {
-        mBinding = ViewFloatingWindowBinding.inflate(LayoutInflater.from(getApplicationContext()));
+        mWindowBinding = ViewFloatingWindowBinding.inflate(LayoutInflater.from(getApplicationContext()));
+        mWindowLayoutParams = buildLayoutParams(64, 64);
+        mWindowManager.addView(mWindowBinding.root, mWindowLayoutParams);
 
-        final WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                PixelFormat.TRANSLUCENT);
+        ViewFloatingWindowBinding binding = mWindowBinding;
 
-        float scale = getResources().getDisplayMetrics().density;
-        layoutParams.gravity = Gravity.CENTER;
-        layoutParams.x = 0;
-        layoutParams.y = 0;
-        layoutParams.width = (int) (64 * scale + .5f);
-        layoutParams.height = layoutParams.width;
-
-        mWindowManager.addView(mBinding.root, layoutParams);
+        closePages();
 
         final RectF touchOffset = new RectF();
         final Handler handler = new Handler();
-
-        mBinding.toggleButton.setOnCheckedChangeListener((v, checked) -> {
+        final PopupMenu popupMenu = new PopupMenu(this, binding.toggleButton);
+        binding.toggleButton.setOnCheckedChangeListener((v, checked) -> {
             handler.removeCallbacksAndMessages(null);
-            if (checked) {
-                mMainMenu.show();
 
-                handler.postDelayed(() -> {
-                    mBinding.toggleButton.setChecked(false);
-                }, 6000);
+            if (checked) {
+                closePages();
+
+                popupMenu.show();
+
+                handler.postDelayed(() -> mWindowBinding.toggleButton.setChecked(false), 6000);
             } else {
-                mMainMenu.dismiss();
+                popupMenu.dismiss();
             }
         });
-        mBinding.toggleButton.setOnTouchListener((v, e) -> {
+        binding.toggleButton.setOnTouchListener((v, e) -> {
             switch (e.getAction()) {
                 case MotionEvent.ACTION_DOWN:
-                    touchOffset.set(layoutParams.x, layoutParams.y, e.getRawX(), e.getRawY());
+                    touchOffset.set(mWindowLayoutParams.x, mWindowLayoutParams.y, e.getRawX(), e.getRawY());
                     break;
 
                 case MotionEvent.ACTION_MOVE:
-                    layoutParams.x = (int) (touchOffset.left - touchOffset.right + e.getRawX());
-                    layoutParams.y = (int) (touchOffset.top - touchOffset.bottom + e.getRawY());
-                    mWindowManager.updateViewLayout(mBinding.root, layoutParams);
+                    mWindowLayoutParams.x = (int) (touchOffset.left - touchOffset.right + e.getRawX());
+                    mWindowLayoutParams.y = (int) (touchOffset.top - touchOffset.bottom + e.getRawY());
+                    mWindowManager.updateViewLayout(mWindowBinding.root, mWindowLayoutParams);
                     break;
             }
             return false;
         });
 
-        mMainMenu = new PopupMenu(this, mBinding.root);
-        mMainMenu.getMenuInflater().inflate(R.menu.menu_main, mMainMenu.getMenu());
+        binding.packageCostResetButton.setOnClickListener(v -> {
+            mWindowBinding.packageCostItem1Amount.setText("0");
+            mWindowBinding.packageCostItem2Amount.setText("0");
+            mWindowBinding.packageCostItem3Amount.setText("0");
+            mWindowBinding.packageCostItem4Amount.setText("0");
+            mWindowBinding.packageCostItem5Amount.setText("0");
+            mWindowBinding.packageCostItem6Amount.setText("0");
+            mWindowBinding.packageCostItem7Amount.setText("0");
+            mWindowBinding.packageCostItem8Amount.setText("0");
+            mWindowBinding.packageCostItem9Amount.setText("0");
+            calcPackageCost();
+        });
+
+        binding.packageCostItem1Add1.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem1Amount, 1));
+        binding.packageCostItem2Add1.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem2Amount, 1));
+        binding.packageCostItem3Add1.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem3Amount, 1));
+        binding.packageCostItem4Add1.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem4Amount, 1));
+        binding.packageCostItem5Add1.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem5Amount, 1));
+        binding.packageCostItem6Add1.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem6Amount, 1));
+        binding.packageCostItem7Add1.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem7Amount, 1));
+        binding.packageCostItem8Add1.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem8Amount, 1));
+        binding.packageCostItem9Add1.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem9Amount, 1));
+
+        binding.packageCostItem1Add10.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem1Amount, 10));
+        binding.packageCostItem2Add10.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem2Amount, 10));
+        binding.packageCostItem3Add10.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem3Amount, 10));
+        binding.packageCostItem4Add10.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem4Amount, 10));
+        binding.packageCostItem5Add10.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem5Amount, 10));
+        binding.packageCostItem6Add10.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem6Amount, 10));
+        binding.packageCostItem7Add10.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem7Amount, 10));
+        binding.packageCostItem8Add10.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem8Amount, 10));
+        binding.packageCostItem9Add10.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem9Amount, 10));
+
+        Menu mainMenu = popupMenu.getMenu();
         int index = 0;
-        SubMenu typeMenu = mMainMenu.getMenu().addSubMenu(Menu.NONE, Menu.FIRST + (++index), Menu.NONE, "屬性");
+        SubMenu typeMenu = mainMenu.addSubMenu(Menu.NONE, Menu.FIRST + (++index), Menu.NONE, "屬性 弱勢　　　/　　　強勢");
         for (Map.Entry<String, String> entry : TypeUrls.entrySet()) {
             String title = entry.getKey();
-            String url = entry.getValue();
-            MenuItem item = typeMenu.add(Menu.NONE, Menu.FIRST + (++index), index, title);
-            item.setOnMenuItemClickListener(i -> {
-                viewUrl(url);
-                return true;
-            });
+            String meta = entry.getValue();
+            typeMenu.add(Menu.NONE, Menu.FIRST + (++index), index, title + "　 " + meta);
         }
 
-        mMainMenu.setOnDismissListener(m -> {
-            mBinding.toggleButton.setChecked(false);
-        });
-        mMainMenu.setOnMenuItemClickListener(i -> {
-            switch (i.getItemId()) {
-                case R.id.calculate_package_discounts:
-                    viewUrl("https://docs.google.com/spreadsheets/d/1erLLHLkWAIfTYULB3jQrOeXSp322jNx7_xyEkBXVN9U/edit?usp=sharing");
-                    return true;
+        mainMenu.add(Menu.NONE, Menu.FIRST + (++index), Menu.NONE, "禮包折扣計算").setOnMenuItemClickListener(i -> onMenuItemClick_PackageCost(i));
 
-                default:
-                    return false;
-            }
+        popupMenu.setOnDismissListener(m -> {
+            mWindowBinding.toggleButton.setChecked(false);
         });
+        // packageCostMenu.setOnMenuItemClickListener(i -> {
+        //     switch (i.getItemId()) {
+        //         case R.id.calculate_package_discounts:
+        //             String url = "https://docs.google.com/spreadsheets/d/1erLLHLkWAIfTYULB3jQrOeXSp322jNx7_xyEkBXVN9U/edit?usp=sharing";
+        //             InfoActivity.sendViewUrl(getApplicationContext(), url);
+        //             return true;
+
+        //         default:
+        //             return false;
+        //     }
+        // });
+    }
+
+    private boolean onMenuItemClick_PackageCost(MenuItem v) {
+        ViewFloatingWindowBinding binding = mWindowBinding;
+
+        if (binding.packageCostPage.getVisibility() == View.VISIBLE) {
+            closePages();
+        } else {
+            float scale = getResources().getDisplayMetrics().density;
+            mWindowLayoutParams.width = (int) (320 * scale + .5f);
+            mWindowLayoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT;
+            // .setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+            mWindowManager.updateViewLayout(binding.root, mWindowLayoutParams);
+
+            binding.pageFrame.setVisibility(View.VISIBLE);
+            binding.packageCostPage.setVisibility(View.VISIBLE);
+            binding.root.requestLayout();
+        }
+        return true;
+    }
+
+    private void putPackageCostAmountText(TextView textView, int add) {
+        int amount = Integer.parseInt(textView.getText().toString());
+        textView.setText(String.valueOf(amount + add));
+        calcPackageCost();
+    }
+
+    private void calcPackageCost() {
+        ViewFloatingWindowBinding binding = mWindowBinding;
+
+        int item1unit = Integer.parseInt(binding.packageCostItem1Unit.getText().toString());
+        int item2unit = Integer.parseInt(binding.packageCostItem2Unit.getText().toString());
+        int item3unit = Integer.parseInt(binding.packageCostItem3Unit.getText().toString());
+        int item4unit = Integer.parseInt(binding.packageCostItem4Unit.getText().toString());
+        int item5unit = Integer.parseInt(binding.packageCostItem5Unit.getText().toString());
+        int item6unit = Integer.parseInt(binding.packageCostItem6Unit.getText().toString());
+        int item7unit = Integer.parseInt(binding.packageCostItem7Unit.getText().toString());
+        int item8unit = Integer.parseInt(binding.packageCostItem8Unit.getText().toString());
+        int item9unit = Integer.parseInt(binding.packageCostItem9Unit.getText().toString());
+
+        int item1amount = Integer.parseInt(binding.packageCostItem1Amount.getText().toString());
+        int item2amount = Integer.parseInt(binding.packageCostItem2Amount.getText().toString());
+        int item3amount = Integer.parseInt(binding.packageCostItem3Amount.getText().toString());
+        int item4amount = Integer.parseInt(binding.packageCostItem4Amount.getText().toString());
+        int item5amount = Integer.parseInt(binding.packageCostItem5Amount.getText().toString());
+        int item6amount = Integer.parseInt(binding.packageCostItem6Amount.getText().toString());
+        int item7amount = Integer.parseInt(binding.packageCostItem7Amount.getText().toString());
+        int item8amount = Integer.parseInt(binding.packageCostItem8Amount.getText().toString());
+        int item9amount = Integer.parseInt(binding.packageCostItem9Amount.getText().toString());
+
+        binding.packageCostItem1Total.setText(String.valueOf(item1unit * item1amount));
+        binding.packageCostItem2Total.setText(String.valueOf(item2unit * item2amount));
+        binding.packageCostItem3Total.setText(String.valueOf(item3unit * item3amount));
+        binding.packageCostItem4Total.setText(String.valueOf(item4unit * item4amount));
+        binding.packageCostItem5Total.setText(String.valueOf(item5unit * item5amount));
+        binding.packageCostItem6Total.setText(String.valueOf(item6unit * item6amount));
+        binding.packageCostItem7Total.setText(String.valueOf(item7unit * item7amount));
+        binding.packageCostItem8Total.setText(String.valueOf(item8unit * item8amount));
+        binding.packageCostItem9Total.setText(String.valueOf(item9unit * item9amount));
+    }
+
+    private void closePages() {
+        Log.d(TAG, "closePages");
+        mWindowBinding.pageFrame.setVisibility(View.GONE);
+        mWindowBinding.packageCostPage.setVisibility(View.GONE);
+
+        float scale = getResources().getDisplayMetrics().density;
+        mWindowLayoutParams.width = (int) (64 * scale + .5f);
+        mWindowLayoutParams.height = (int) (64 * scale + .5f);
+        mWindowManager.updateViewLayout(mWindowBinding.root, mWindowLayoutParams);
+    }
+
+    private WindowManager.LayoutParams buildLayoutParams(int width, int height) {
+        int type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
+        int flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        int format = PixelFormat.TRANSLUCENT;
+        WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams(type, flags, format);
+
+        float scale = getResources().getDisplayMetrics().density;
+        layoutParams.gravity = Gravity.CENTER;
+        layoutParams.x = 0;
+        layoutParams.y = 0;
+        layoutParams.width = (int) (width * scale + .5f);
+        layoutParams.height = (int) (height * scale + .5f);
+        return layoutParams;
     }
 
     @Override
@@ -211,17 +333,8 @@ public class FloatingWindowService extends Service {
         super.onDestroy();
     }
 
-    private void viewUrl(String url) {
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setData(Uri.parse(url));
-        intent.addFlags(Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT | Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
-        // TODO: 沒法從 service 當中主動使其他 app 進入 multi-window 或 picture-in-picture 模式
-        // 可能要嘗試看看自己開一個 activity 內鑲 web view 的方式來做
-    }
-
     private void close() {
         stopSelf();
-        mWindowManager.removeView(mBinding.root);
+        mWindowManager.removeView(mWindowBinding.root);
     }
 }

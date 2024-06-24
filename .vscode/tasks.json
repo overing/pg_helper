@@ -68,7 +68,8 @@
             "group": "none",
             "presentation": {
                 "reveal": "silent",
-                "panel": "new"
+                "panel": "new",
+                "close": true
             },
             "problemMatcher": [],
             "dependsOn": ["run gradle"]

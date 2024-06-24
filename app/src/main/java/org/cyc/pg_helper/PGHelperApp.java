@@ -48,12 +48,8 @@ public class PGHelperApp extends Application {
             return true;
         }
 
-        hintAllowDrawOverlay();
-        return false;
-    }
-
-    private void hintAllowDrawOverlay() {
         Toast.makeText(getApplicationContext(), "Please Allow Display Floating Window", Toast.LENGTH_SHORT).show();
         startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName())));
+        return false;
     }
 }
