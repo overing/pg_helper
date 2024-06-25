@@ -1,5 +1,6 @@
 package org.cyc.pg_helper;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -16,6 +17,7 @@ import android.graphics.RectF;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
@@ -27,6 +29,7 @@ import android.view.SubMenu;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.PopupMenu;
+import android.widget.TableLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,6 +37,8 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 import org.cyc.pg_helper.databinding.ViewFloatingWindowBinding;
+import org.cyc.pg_helper.databinding.ViewGiftPackageDiscountPageBinding;
+import org.cyc.pg_helper.databinding.ViewGiftPackageItemBinding;
 
 public class FloatingWindowService extends Service {
 
@@ -45,11 +50,15 @@ public class FloatingWindowService extends Service {
 
     private static final int NOTIFICATION_ID = 1234;
 
-    private static final LinkedHashMap<String, String> TypeUrls;
+    private static final LinkedHashMap<String, String> TypeWeakStrong;
+
+    private static final ArrayList<GiftPackageItem> GiftPackageItems;
 
     private WindowManager mWindowManager;
     private ViewFloatingWindowBinding mWindowBinding;
     private WindowManager.LayoutParams mWindowLayoutParams;
+
+    private GiftPackageDiscount mGiftPackageDiscount = new GiftPackageDiscount();
 
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
 
@@ -82,7 +91,19 @@ public class FloatingWindowService extends Service {
         mapping.put("鋼", "火格地　　/　　冰岩妖");
         mapping.put("地", "水草冰　　/火電毒岩鋼");
         mapping.put("妖", "毒鋼　　　/　　格龍惡");
-        TypeUrls = mapping;
+        TypeWeakStrong = mapping;
+
+        ArrayList<GiftPackageItem> items = new ArrayList<GiftPackageItem>();
+        items.add(new GiftPackageItem("遠券", 175));
+        items.add(new GiftPackageItem("特券", 83));
+        items.add(new GiftPackageItem("孵蛋", 150));
+        items.add(new GiftPackageItem("快孵", 200));
+        items.add(new GiftPackageItem("滿藥", 20));
+        items.add(new GiftPackageItem("復活", 30));
+        items.add(new GiftPackageItem("薰香", 31));
+        items.add(new GiftPackageItem("星碎", 80));
+        items.add(new GiftPackageItem("運蛋", 63));
+        GiftPackageItems = items;
     }
 
     public static void sendCloseBroadcast(Context context) {
@@ -129,10 +150,10 @@ public class FloatingWindowService extends Service {
         manager.createNotificationChannel(channel);
 
         Notification notification = new Notification.Builder(this, CHANNEL_ID)
-                .setContentTitle("Floating Window Service")
-                .setContentText("PG Helper is running")
-                .setSmallIcon(R.mipmap.ic_qs_tile)
-                .build();
+            .setContentTitle("Floating Window Service")
+            .setContentText("PG Helper is running")
+            .setSmallIcon(R.mipmap.ic_qs_tile)
+            .build();
 
         startForeground(NOTIFICATION_ID, notification);
 
@@ -140,22 +161,23 @@ public class FloatingWindowService extends Service {
     }
 
     private void initUi() {
-        mWindowBinding = ViewFloatingWindowBinding.inflate(LayoutInflater.from(getApplicationContext()));
+        LayoutInflater inflater = LayoutInflater.from(getApplicationContext());
+        mWindowBinding = ViewFloatingWindowBinding.inflate(inflater);
         mWindowLayoutParams = buildLayoutParams(64, 64);
         mWindowManager.addView(mWindowBinding.root, mWindowLayoutParams);
 
         ViewFloatingWindowBinding binding = mWindowBinding;
 
-        closePages();
+        closeAllPages();
 
         final RectF touchOffset = new RectF();
-        final Handler handler = new Handler();
+        final Handler handler = new Handler(Looper.getMainLooper());
         final PopupMenu popupMenu = new PopupMenu(this, binding.toggleButton);
         binding.toggleButton.setOnCheckedChangeListener((v, checked) -> {
             handler.removeCallbacksAndMessages(null);
 
             if (checked) {
-                closePages();
+                closeAllPages();
 
                 popupMenu.show();
 
@@ -179,129 +201,110 @@ public class FloatingWindowService extends Service {
             return false;
         });
 
-        binding.packageCostResetButton.setOnClickListener(v -> {
-            mWindowBinding.packageCostItem1Amount.setText("0");
-            mWindowBinding.packageCostItem2Amount.setText("0");
-            mWindowBinding.packageCostItem3Amount.setText("0");
-            mWindowBinding.packageCostItem4Amount.setText("0");
-            mWindowBinding.packageCostItem5Amount.setText("0");
-            mWindowBinding.packageCostItem6Amount.setText("0");
-            mWindowBinding.packageCostItem7Amount.setText("0");
-            mWindowBinding.packageCostItem8Amount.setText("0");
-            mWindowBinding.packageCostItem9Amount.setText("0");
-            calcPackageCost();
-        });
+        initMenu(popupMenu.getMenu());
 
-        binding.packageCostItem1Add1.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem1Amount, 1));
-        binding.packageCostItem2Add1.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem2Amount, 1));
-        binding.packageCostItem3Add1.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem3Amount, 1));
-        binding.packageCostItem4Add1.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem4Amount, 1));
-        binding.packageCostItem5Add1.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem5Amount, 1));
-        binding.packageCostItem6Add1.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem6Amount, 1));
-        binding.packageCostItem7Add1.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem7Amount, 1));
-        binding.packageCostItem8Add1.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem8Amount, 1));
-        binding.packageCostItem9Add1.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem9Amount, 1));
-
-        binding.packageCostItem1Add10.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem1Amount, 10));
-        binding.packageCostItem2Add10.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem2Amount, 10));
-        binding.packageCostItem3Add10.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem3Amount, 10));
-        binding.packageCostItem4Add10.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem4Amount, 10));
-        binding.packageCostItem5Add10.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem5Amount, 10));
-        binding.packageCostItem6Add10.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem6Amount, 10));
-        binding.packageCostItem7Add10.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem7Amount, 10));
-        binding.packageCostItem8Add10.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem8Amount, 10));
-        binding.packageCostItem9Add10.setOnClickListener(v -> putPackageCostAmountText(binding.packageCostItem9Amount, 10));
-
-        Menu mainMenu = popupMenu.getMenu();
-        int index = 0;
-        SubMenu typeMenu = mainMenu.addSubMenu(Menu.NONE, Menu.FIRST + (++index), Menu.NONE, "屬性 弱勢　　　/　　　強勢");
-        for (Map.Entry<String, String> entry : TypeUrls.entrySet()) {
-            String title = entry.getKey();
-            String meta = entry.getValue();
-            typeMenu.add(Menu.NONE, Menu.FIRST + (++index), index, title + "　 " + meta);
-        }
-
-        mainMenu.add(Menu.NONE, Menu.FIRST + (++index), Menu.NONE, "禮包折扣計算").setOnMenuItemClickListener(i -> onMenuItemClick_PackageCost(i));
+        initPackageDiscountPage(binding.packageDiscountPage, inflater);
 
         popupMenu.setOnDismissListener(m -> {
             mWindowBinding.toggleButton.setChecked(false);
         });
-        // packageCostMenu.setOnMenuItemClickListener(i -> {
-        //     switch (i.getItemId()) {
-        //         case R.id.calculate_package_discounts:
-        //             String url = "https://docs.google.com/spreadsheets/d/1erLLHLkWAIfTYULB3jQrOeXSp322jNx7_xyEkBXVN9U/edit?usp=sharing";
-        //             InfoActivity.sendViewUrl(getApplicationContext(), url);
-        //             return true;
+    }
 
-        //         default:
-        //             return false;
-        //     }
-        // });
+    private void initMenu(Menu mainMenu) {
+        int index = 0;
+        SubMenu typeMenu = mainMenu.addSubMenu(Menu.NONE, Menu.FIRST + (++index), Menu.NONE, "屬性 弱勢　　　/　　　強勢");
+        for (Map.Entry<String, String> entry : TypeWeakStrong.entrySet()) {
+            String title = entry.getKey();
+            String meta = entry.getValue();
+            typeMenu.add(Menu.NONE, Menu.FIRST + (++index), index, title + "　 " + meta);
+        }
+        mainMenu.add(Menu.NONE, Menu.FIRST + (++index), Menu.NONE, "禮包折扣計算").setOnMenuItemClickListener(i -> onMenuItemClick_PackageCost(i));
+        mainMenu.add(Menu.NONE, Menu.FIRST + (++index), Menu.NONE, "關閉").setOnMenuItemClickListener(i -> {
+            close();
+            return true;
+        });
+    }
+
+    private void initPackageDiscountPage(ViewGiftPackageDiscountPageBinding packageDiscountPage, LayoutInflater inflater) {
+        packageDiscountPage.setDiscount(mGiftPackageDiscount);
+
+        packageDiscountPage.packageCostResetButton.setOnClickListener(v -> {
+            for (GiftPackageItem item : GiftPackageItems) {
+                item.setAmount(0);
+            }
+            mGiftPackageDiscount.setTotalPrice(0);
+            mGiftPackageDiscount.setRealPrice(0);
+        });
+
+        packageDiscountPage.packageCostCloseButton.setOnClickListener(v -> closeAllPages());
+
+        packageDiscountPage.realPrice.setOnClickListener(v -> {
+            mGiftPackageDiscount.setRealPrice(0);
+        });
+
+        packageDiscountPage.action1.setText("+1");
+        packageDiscountPage.action1.setOnClickListener(v -> {
+            mGiftPackageDiscount.setRealPrice(mGiftPackageDiscount.getRealPrice() + 1);
+        });
+
+        packageDiscountPage.action2.setText("0");
+        packageDiscountPage.action2.setOnClickListener(v -> {
+            mGiftPackageDiscount.setRealPrice(mGiftPackageDiscount.getRealPrice() * 10);
+        });
+
+        int index = 0;
+        for (GiftPackageItem item : GiftPackageItems) {
+            ViewGiftPackageItemBinding itemBinding = ViewGiftPackageItemBinding.inflate(inflater);
+            itemBinding.setItem(item);
+
+            itemBinding.itemAmount.setOnClickListener(v -> {
+                item.setAmount(0);
+                calcGiftPackageTotalPrice();
+            });
+
+            itemBinding.itemAction1.setText("+1");
+            itemBinding.itemAction1.setOnClickListener(v -> {
+                item.setAmount(item.getAmount() + 1);
+                calcGiftPackageTotalPrice();
+            });
+
+            itemBinding.itemAction2.setText("0");
+            itemBinding.itemAction2.setOnClickListener(v -> {
+                item.setAmount(item.getAmount() * 10);
+                calcGiftPackageTotalPrice();
+            });
+
+            packageDiscountPage.root.addView(itemBinding.root, ++index);
+        }
     }
 
     private boolean onMenuItemClick_PackageCost(MenuItem v) {
         ViewFloatingWindowBinding binding = mWindowBinding;
-
-        if (binding.packageCostPage.getVisibility() == View.VISIBLE) {
-            closePages();
+        if (binding.packageDiscountPage.root.getVisibility() == View.VISIBLE) {
+            closeAllPages();
         } else {
             float scale = getResources().getDisplayMetrics().density;
-            mWindowLayoutParams.width = (int) (320 * scale + .5f);
+            mWindowLayoutParams.width = (int) (280 * scale + .5f);
             mWindowLayoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT;
-            // .setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
             mWindowManager.updateViewLayout(binding.root, mWindowLayoutParams);
 
-            binding.pageFrame.setVisibility(View.VISIBLE);
-            binding.packageCostPage.setVisibility(View.VISIBLE);
+            binding.packageDiscountPage.root.setVisibility(View.VISIBLE);
             binding.root.requestLayout();
         }
         return true;
     }
 
-    private void putPackageCostAmountText(TextView textView, int add) {
-        int amount = Integer.parseInt(textView.getText().toString());
-        textView.setText(String.valueOf(amount + add));
-        calcPackageCost();
+    private void calcGiftPackageTotalPrice() {
+        int total = 0;
+        for (GiftPackageItem item : GiftPackageItems) {
+            total += item.getTotal();
+        }
+        mGiftPackageDiscount.setTotalPrice(total);
     }
 
-    private void calcPackageCost() {
-        ViewFloatingWindowBinding binding = mWindowBinding;
-
-        int item1unit = Integer.parseInt(binding.packageCostItem1Unit.getText().toString());
-        int item2unit = Integer.parseInt(binding.packageCostItem2Unit.getText().toString());
-        int item3unit = Integer.parseInt(binding.packageCostItem3Unit.getText().toString());
-        int item4unit = Integer.parseInt(binding.packageCostItem4Unit.getText().toString());
-        int item5unit = Integer.parseInt(binding.packageCostItem5Unit.getText().toString());
-        int item6unit = Integer.parseInt(binding.packageCostItem6Unit.getText().toString());
-        int item7unit = Integer.parseInt(binding.packageCostItem7Unit.getText().toString());
-        int item8unit = Integer.parseInt(binding.packageCostItem8Unit.getText().toString());
-        int item9unit = Integer.parseInt(binding.packageCostItem9Unit.getText().toString());
-
-        int item1amount = Integer.parseInt(binding.packageCostItem1Amount.getText().toString());
-        int item2amount = Integer.parseInt(binding.packageCostItem2Amount.getText().toString());
-        int item3amount = Integer.parseInt(binding.packageCostItem3Amount.getText().toString());
-        int item4amount = Integer.parseInt(binding.packageCostItem4Amount.getText().toString());
-        int item5amount = Integer.parseInt(binding.packageCostItem5Amount.getText().toString());
-        int item6amount = Integer.parseInt(binding.packageCostItem6Amount.getText().toString());
-        int item7amount = Integer.parseInt(binding.packageCostItem7Amount.getText().toString());
-        int item8amount = Integer.parseInt(binding.packageCostItem8Amount.getText().toString());
-        int item9amount = Integer.parseInt(binding.packageCostItem9Amount.getText().toString());
-
-        binding.packageCostItem1Total.setText(String.valueOf(item1unit * item1amount));
-        binding.packageCostItem2Total.setText(String.valueOf(item2unit * item2amount));
-        binding.packageCostItem3Total.setText(String.valueOf(item3unit * item3amount));
-        binding.packageCostItem4Total.setText(String.valueOf(item4unit * item4amount));
-        binding.packageCostItem5Total.setText(String.valueOf(item5unit * item5amount));
-        binding.packageCostItem6Total.setText(String.valueOf(item6unit * item6amount));
-        binding.packageCostItem7Total.setText(String.valueOf(item7unit * item7amount));
-        binding.packageCostItem8Total.setText(String.valueOf(item8unit * item8amount));
-        binding.packageCostItem9Total.setText(String.valueOf(item9unit * item9amount));
-    }
-
-    private void closePages() {
-        Log.d(TAG, "closePages");
-        mWindowBinding.pageFrame.setVisibility(View.GONE);
-        mWindowBinding.packageCostPage.setVisibility(View.GONE);
+    private void closeAllPages() {
+        Log.d(TAG, "closeAllPages");
+        mWindowBinding.packageDiscountPage.root.setVisibility(View.GONE);
 
         float scale = getResources().getDisplayMetrics().density;
         mWindowLayoutParams.width = (int) (64 * scale + .5f);

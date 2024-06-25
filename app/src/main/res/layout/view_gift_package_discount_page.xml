@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+        <variable
+            name="discount"
+            type="org.cyc.pg_helper.GiftPackageDiscount"/>
+    </data>
+
+    <TableLayout
+        android:id="@+id/root"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/border">
+
+        <TableRow>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="4dp"
+                android:textStyle="bold"
+                android:text="品名" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="4dp"
+                android:textStyle="bold"
+                android:text="單價" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="4dp"
+                android:textStyle="bold"
+                android:text="小計" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="4dp"
+                android:textStyle="bold"
+                android:text="數量" />
+            <Button
+                android:id="@+id/package_cost_reset_button"
+                android:layout_width="30sp"
+                android:layout_height="32sp"
+                android:layout_marginLeft="4dp"
+                android:padding="2dp"
+                android:text="\u21BB" />
+            <Button
+                android:id="@+id/package_cost_close_button"
+                android:layout_width="30sp"
+                android:layout_height="32sp"
+                android:layout_marginLeft="1dp"
+                android:padding="2dp"
+                android:text="X" />
+        </TableRow>
+
+        <TableRow>
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_span="6"
+                android:background="#000000" />
+        </TableRow>
+
+        <TableRow>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="4dp"
+                android:textStyle="bold"
+                android:text="折扣" />
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="4dp"
+                android:textStyle="bold"
+                android:text="總價" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="4dp"
+                android:textStyle="bold"
+                android:text="特價" />
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp" />
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp" />
+        </TableRow>
+
+        <TableRow>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="4dp"
+                android:gravity="right"
+                android:background="#aaaaff"
+                android:text="@{String.format(discount.rateFormat, discount.discountRate)}" />
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="4dp"
+                android:gravity="right"
+                android:background="#aaaaff"
+                android:text="@{String.valueOf(discount.totalPrice)}" />
+            <TextView
+                android:id="@+id/real_price"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="4dp"
+                android:gravity="right"
+                android:background="#ffaaaa"
+                android:text="@{String.valueOf(discount.realPrice)}" />
+            <Button
+                android:id="@+id/action1"
+                android:layout_width="30sp"
+                android:layout_height="32sp"
+                android:layout_marginLeft="4dp"
+                android:padding="2dp" />
+            <Button
+                android:id="@+id/action2"
+                android:layout_width="30sp"
+                android:layout_height="32sp"
+                android:layout_marginLeft="4dp"
+                android:padding="2dp" />
+        </TableRow>
+
+    </TableLayout>
+
+</layout>

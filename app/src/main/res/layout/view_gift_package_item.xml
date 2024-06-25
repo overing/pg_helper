@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+        <variable
+            name="item"
+            type="org.cyc.pg_helper.GiftPackageItem"/>
+    </data>
+
+    <TableRow
+        android:id="@+id/root">
+        <TextView
+            android:id="@+id/item_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="4dp"
+            android:textStyle="bold"
+            android:text="@{item.name}" />
+        <TextView
+            android:id="@+id/item_unit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="4dp"
+            android:gravity="right"
+            android:text="@{String.valueOf(item.unit)}" />
+        <TextView
+            android:id="@+id/item_total"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="4dp"
+            android:gravity="right"
+            android:background="#aaaaff"
+            android:text="@{String.valueOf(item.total)}" />
+        <TextView
+            android:id="@+id/item_amount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="4dp"
+            android:gravity="right"
+            android:background="#ffaaaa"
+            android:text="@{String.valueOf(item.amount)}" />
+        <Button
+            android:id="@+id/item_action1"
+            android:layout_width="30sp"
+            android:layout_height="32sp"
+            android:layout_marginLeft="4dp"
+            android:padding="2dp" />
+        <Button
+            android:id="@+id/item_action2"
+            android:layout_width="30sp"
+            android:layout_height="32sp"
+            android:layout_marginLeft="1dp"
+            android:padding="2dp" />
+    </TableRow>
+
+</layout>

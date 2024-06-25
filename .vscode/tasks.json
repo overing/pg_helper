@@ -4,7 +4,7 @@
         {
             "label": "run gradle",
             "type": "shell",
-            "command": "${workspaceFolder}/gradlew",
+            "command": "${workspaceFolder}/gradlew.bat",
             "args": [
                 "assembleDebug"
             ],
