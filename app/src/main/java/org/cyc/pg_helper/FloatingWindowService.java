@@ -1,5 +1,7 @@
 package org.cyc.pg_helper;
 
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -19,6 +21,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.util.DisplayMetrics;
+import android.util.JsonReader;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -50,15 +53,13 @@ public class FloatingWindowService extends Service {
 
     private static final int NOTIFICATION_ID = 1234;
 
-    private static final LinkedHashMap<String, String> TypeWeakStrong;
-
-    private static final ArrayList<GiftPackageItem> GiftPackageItems;
-
     private WindowManager mWindowManager;
     private ViewFloatingWindowBinding mWindowBinding;
     private WindowManager.LayoutParams mWindowLayoutParams;
 
     private GiftPackageDiscount mGiftPackageDiscount = new GiftPackageDiscount();
+
+    private ArrayList<GiftPackageItem> mGiftPackageItems = new ArrayList<GiftPackageItem>();
 
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
 
@@ -70,41 +71,6 @@ public class FloatingWindowService extends Service {
             }
         }
     };
-
-    static {
-        LinkedHashMap<String, String> mapping = new LinkedHashMap<String, String>();
-        mapping.put("普", "格");
-        mapping.put("飛", "電冰岩　　/　　草格蟲");
-        mapping.put("火", "水地岩　　/　草冰蟲鋼");
-        mapping.put("超", "蟲幽惡　　/　　　格毒");
-        mapping.put("水", "電草　　　/　　火地岩");
-        mapping.put("蟲", "火飛岩　　/　　草超惡");
-        mapping.put("電", "地　　　　/　　　水飛");
-        mapping.put("岩", "水草格地鋼/　火冰飛蟲");
-        mapping.put("草", "火冰毒飛蟲/　　水地岩");
-        mapping.put("幽", "幽惡　　　/　　　超幽");
-        mapping.put("冰", "火格岩鋼　/　草地飛龍");
-        mapping.put("龍", "冰龍妖　　/　　　　龍");
-        mapping.put("格", "飛超妖　　/普冰岩惡鋼");
-        mapping.put("惡", "格蟲妖　　/　　　超幽");
-        mapping.put("毒", "地超　　　/　　　草妖");
-        mapping.put("鋼", "火格地　　/　　冰岩妖");
-        mapping.put("地", "水草冰　　/火電毒岩鋼");
-        mapping.put("妖", "毒鋼　　　/　　格龍惡");
-        TypeWeakStrong = mapping;
-
-        ArrayList<GiftPackageItem> items = new ArrayList<GiftPackageItem>();
-        items.add(new GiftPackageItem("遠券", 175));
-        items.add(new GiftPackageItem("特券", 83));
-        items.add(new GiftPackageItem("孵蛋", 150));
-        items.add(new GiftPackageItem("快孵", 200));
-        items.add(new GiftPackageItem("滿藥", 20));
-        items.add(new GiftPackageItem("復活", 30));
-        items.add(new GiftPackageItem("薰香", 31));
-        items.add(new GiftPackageItem("星碎", 80));
-        items.add(new GiftPackageItem("運蛋", 63));
-        GiftPackageItems = items;
-    }
 
     public static void sendCloseBroadcast(Context context) {
         Log.d(TAG, "sendCloseBroadcast");
@@ -162,7 +128,7 @@ public class FloatingWindowService extends Service {
     private void initUi() {
         LayoutInflater inflater = LayoutInflater.from(getApplicationContext());
         ViewFloatingWindowBinding binding = mWindowBinding = ViewFloatingWindowBinding.inflate(inflater);
-        mWindowLayoutParams = buildLayoutParams(64, 64);
+        mWindowLayoutParams = buildLayoutParams();
         mWindowManager.addView(binding.root, mWindowLayoutParams);
 
         closeAllPages();
@@ -214,15 +180,16 @@ public class FloatingWindowService extends Service {
     }
 
     private void initMenu(Menu mainMenu) {
-        int index = 0;
-        SubMenu typeMenu = mainMenu.addSubMenu(Menu.NONE, Menu.FIRST + (++index), Menu.NONE, "屬性 弱勢　　　/　　　強勢");
-        for (Map.Entry<String, String> entry : TypeWeakStrong.entrySet()) {
-            String title = entry.getKey();
-            String meta = entry.getValue();
-            typeMenu.add(Menu.NONE, Menu.FIRST + (++index), index, title + "　 " + meta);
-        }
-        mainMenu.add(Menu.NONE, Menu.FIRST + (++index), Menu.NONE, "禮包折扣計算").setOnMenuItemClickListener(i -> onMenuItemClick_PackageDiscount(i));
-        mainMenu.add(Menu.NONE, Menu.FIRST + (++index), Menu.NONE, "關閉").setOnMenuItemClickListener(i -> {
+        int index = Menu.FIRST;
+        mainMenu.add(Menu.NONE, ++index, Menu.NONE, "屬性克制關係").setOnMenuItemClickListener(v -> {
+            toggleViewPage(mWindowBinding, mWindowBinding.typeListPage.root);
+            return true;
+        });
+        mainMenu.add(Menu.NONE, ++index, Menu.NONE, "禮包折扣計算").setOnMenuItemClickListener(v -> {
+            toggleViewPage(mWindowBinding, mWindowBinding.packageDiscountPage.root);
+            return true;
+        });
+        mainMenu.add(Menu.NONE, ++index, Menu.NONE, "關閉").setOnMenuItemClickListener(v -> {
             close();
             return true;
         });
@@ -232,7 +199,7 @@ public class FloatingWindowService extends Service {
         packageDiscountPage.setDiscount(mGiftPackageDiscount);
 
         packageDiscountPage.packageCostResetButton.setOnClickListener(v -> {
-            for (GiftPackageItem item : GiftPackageItems) {
+            for (GiftPackageItem item : mGiftPackageItems) {
                 item.setAmount(0);
             }
             mGiftPackageDiscount.setTotalPrice(0);
@@ -255,56 +222,76 @@ public class FloatingWindowService extends Service {
             mGiftPackageDiscount.setRealPrice(mGiftPackageDiscount.getRealPrice() * 10);
         });
 
-        int index = 0;
-        for (GiftPackageItem item : GiftPackageItems) {
-            ViewGiftPackageItemBinding itemBinding = ViewGiftPackageItemBinding.inflate(inflater);
-            itemBinding.setItem(item);
+        int viewIndex = 1;
+        JsonReader reader = null;
+        try {
+            InputStream input = getResources().openRawResource(R.raw.item_price);
+            reader = new JsonReader(new InputStreamReader(input, "UTF-8"));
 
-            itemBinding.itemAmount.setOnClickListener(v -> {
-                item.setAmount(0);
-                calcGiftPackageTotalPrice();
-            });
+            reader.beginObject();
+            while (reader.hasNext()) {
+                String name = reader.nextName();
+                int price = reader.nextInt();
 
-            itemBinding.itemAction1.setText("+1");
-            itemBinding.itemAction1.setOnClickListener(v -> {
-                item.setAmount(item.getAmount() + 1);
-                calcGiftPackageTotalPrice();
-            });
+                GiftPackageItem item = new GiftPackageItem(name, price);
+                mGiftPackageItems.add(item);
 
-            itemBinding.itemAction2.setText("0");
-            itemBinding.itemAction2.setOnClickListener(v -> {
-                item.setAmount(item.getAmount() * 10);
-                calcGiftPackageTotalPrice();
-            });
+                ViewGiftPackageItemBinding itemBinding = ViewGiftPackageItemBinding.inflate(inflater);
+                itemBinding.setItem(item);
 
-            packageDiscountPage.root.addView(itemBinding.root, ++index);
+                itemBinding.itemAmount.setOnClickListener(v -> {
+                    item.setAmount(0);
+                    calcGiftPackageTotalPrice();
+                });
+
+                itemBinding.itemAction1.setText("+1");
+                itemBinding.itemAction1.setOnClickListener(v -> {
+                    item.setAmount(item.getAmount() + 1);
+                    calcGiftPackageTotalPrice();
+                });
+
+                itemBinding.itemAction2.setText("0");
+                itemBinding.itemAction2.setOnClickListener(v -> {
+                    item.setAmount(item.getAmount() * 10);
+                    calcGiftPackageTotalPrice();
+                });
+
+                packageDiscountPage.root.addView(itemBinding.root, viewIndex++);
+            }
+            reader.endObject();
+        } catch (Exception ex) {
+            Toast.makeText(this, "讀取價格表發生錯誤: " + ex.getMessage(), Toast.LENGTH_LONG);
+            Log.e(TAG, "Read item price table fault", ex);
+        } finally {
+            if (reader != null) {
+                try { reader.close(); } catch (Exception ignore) { }
+            }
         }
     }
 
-    private boolean onMenuItemClick_PackageDiscount(MenuItem v) {
-        ViewFloatingWindowBinding binding = mWindowBinding;
-        if (binding.packageDiscountPage.root.getVisibility() == View.VISIBLE) {
+    private void calcGiftPackageTotalPrice() {
+        int total = 0;
+        for (GiftPackageItem item : mGiftPackageItems) {
+            total += item.getTotal();
+        }
+        mGiftPackageDiscount.setTotalPrice(total);
+    }
+
+    private void toggleViewPage(ViewFloatingWindowBinding binding, View viewPage) {
+        if (viewPage.getVisibility() == View.VISIBLE) {
             closeAllPages();
         } else {
             mWindowLayoutParams.width = WindowManager.LayoutParams.WRAP_CONTENT;
             mWindowLayoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT;
             mWindowManager.updateViewLayout(binding.root, mWindowLayoutParams);
 
-            binding.packageDiscountPage.root.setVisibility(View.VISIBLE);
+            viewPage.setVisibility(View.VISIBLE);
             binding.root.requestLayout();
         }
-        return true;
-    }
-
-    private void calcGiftPackageTotalPrice() {
-        int total = 0;
-        for (GiftPackageItem item : GiftPackageItems) {
-            total += item.getTotal();
-        }
-        mGiftPackageDiscount.setTotalPrice(total);
     }
 
     private void closeAllPages() {
+        mWindowBinding.typeListPage.root.setVisibility(View.GONE);
         mWindowBinding.packageDiscountPage.root.setVisibility(View.GONE);
 
         float scale = getResources().getDisplayMetrics().density;
@@ -313,7 +300,7 @@ public class FloatingWindowService extends Service {
         mWindowManager.updateViewLayout(mWindowBinding.root, mWindowLayoutParams);
     }
 
-    private WindowManager.LayoutParams buildLayoutParams(int width, int height) {
+    private WindowManager.LayoutParams buildLayoutParams() {
         int type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
         int flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
         int format = PixelFormat.TRANSLUCENT;
@@ -323,8 +310,8 @@ public class FloatingWindowService extends Service {
         layoutParams.gravity = Gravity.CENTER;
         layoutParams.x = 0;
         layoutParams.y = 0;
-        layoutParams.width = (int) (width * scale + .5f);
-        layoutParams.height = (int) (height * scale + .5f);
+        layoutParams.width = (int) (64 * scale + .5f);
+        layoutParams.height = (int) (64 * scale + .5f);
         return layoutParams;
     }
 

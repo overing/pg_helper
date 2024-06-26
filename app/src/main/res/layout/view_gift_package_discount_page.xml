@@ -130,7 +130,7 @@
                 android:id="@+id/action2"
                 android:layout_width="30sp"
                 android:layout_height="32sp"
-                android:layout_marginLeft="4dp"
+                android:layout_marginLeft="1dp"
                 android:padding="2dp" />
         </TableRow>
 
