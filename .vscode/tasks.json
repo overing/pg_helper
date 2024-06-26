@@ -23,6 +23,23 @@
             }
         },
         {
+            "label": "run gradle release",
+            "type": "shell",
+            "command": "${workspaceFolder}/gradlew.bat",
+            "args": [
+                "assembleRelease"
+            ],
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "run emulator",
             "type": "shell",
             "group": "none",

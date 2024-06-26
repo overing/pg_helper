@@ -100,7 +100,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="4dp"
                 android:gravity="right"
-                android:background="#aaaaff"
+                android:background="@color/color_calc_field"
                 android:text="@{String.format(discount.rateFormat, discount.discountRate)}" />
             <View
                 android:layout_width="0dp"
@@ -110,7 +110,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="4dp"
                 android:gravity="right"
-                android:background="#aaaaff"
+                android:background="@color/color_calc_field"
                 android:text="@{String.valueOf(discount.totalPrice)}" />
             <TextView
                 android:id="@+id/real_price"
@@ -118,7 +118,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="4dp"
                 android:gravity="right"
-                android:background="#ffaaaa"
+                android:background="@color/color_input_field"
                 android:text="@{String.valueOf(discount.realPrice)}" />
             <Button
                 android:id="@+id/action1"

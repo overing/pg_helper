@@ -31,7 +31,7 @@
             android:layout_height="wrap_content"
             android:layout_marginLeft="4dp"
             android:gravity="right"
-            android:background="#aaaaff"
+            android:background="@color/color_calc_field"
             android:text="@{String.valueOf(item.total)}" />
         <TextView
             android:id="@+id/item_amount"
@@ -39,7 +39,7 @@
             android:layout_height="wrap_content"
             android:layout_marginLeft="4dp"
             android:gravity="right"
-            android:background="#ffaaaa"
+            android:background="@color/color_input_field"
             android:text="@{String.valueOf(item.amount)}" />
         <Button
             android:id="@+id/item_action1"

@@ -131,7 +131,6 @@ public class FloatingWindowService extends Service {
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        Log.d(TAG, "onBind");
         return null;
     }
 
@@ -162,17 +161,29 @@ public class FloatingWindowService extends Service {
 
     private void initUi() {
         LayoutInflater inflater = LayoutInflater.from(getApplicationContext());
-        mWindowBinding = ViewFloatingWindowBinding.inflate(inflater);
+        ViewFloatingWindowBinding binding = mWindowBinding = ViewFloatingWindowBinding.inflate(inflater);
         mWindowLayoutParams = buildLayoutParams(64, 64);
-        mWindowManager.addView(mWindowBinding.root, mWindowLayoutParams);
-
-        ViewFloatingWindowBinding binding = mWindowBinding;
+        mWindowManager.addView(binding.root, mWindowLayoutParams);
 
         closeAllPages();
 
+        PopupMenu popupMenu = new PopupMenu(this, binding.toggleButton);
+
+        initToggle(popupMenu);
+
+        initMenu(popupMenu.getMenu());
+
+        initPackageDiscountPage(binding.packageDiscountPage, inflater);
+
+        popupMenu.setOnDismissListener(m -> {
+            mWindowBinding.toggleButton.setChecked(false);
+        });
+    }
+
+    private void initToggle(PopupMenu popupMenu) {
+        ViewFloatingWindowBinding binding = mWindowBinding;
         final RectF touchOffset = new RectF();
         final Handler handler = new Handler(Looper.getMainLooper());
-        final PopupMenu popupMenu = new PopupMenu(this, binding.toggleButton);
         binding.toggleButton.setOnCheckedChangeListener((v, checked) -> {
             handler.removeCallbacksAndMessages(null);
 
@@ -200,14 +211,6 @@ public class FloatingWindowService extends Service {
             }
             return false;
         });
-
-        initMenu(popupMenu.getMenu());
-
-        initPackageDiscountPage(binding.packageDiscountPage, inflater);
-
-        popupMenu.setOnDismissListener(m -> {
-            mWindowBinding.toggleButton.setChecked(false);
-        });
     }
 
     private void initMenu(Menu mainMenu) {
@@ -218,7 +221,7 @@ public class FloatingWindowService extends Service {
             String meta = entry.getValue();
             typeMenu.add(Menu.NONE, Menu.FIRST + (++index), index, title + "　 " + meta);
         }
-        mainMenu.add(Menu.NONE, Menu.FIRST + (++index), Menu.NONE, "禮包折扣計算").setOnMenuItemClickListener(i -> onMenuItemClick_PackageCost(i));
+        mainMenu.add(Menu.NONE, Menu.FIRST + (++index), Menu.NONE, "禮包折扣計算").setOnMenuItemClickListener(i -> onMenuItemClick_PackageDiscount(i));
         mainMenu.add(Menu.NONE, Menu.FIRST + (++index), Menu.NONE, "關閉").setOnMenuItemClickListener(i -> {
             close();
             return true;
@@ -278,13 +281,12 @@ public class FloatingWindowService extends Service {
         }
     }
 
-    private boolean onMenuItemClick_PackageCost(MenuItem v) {
+    private boolean onMenuItemClick_PackageDiscount(MenuItem v) {
         ViewFloatingWindowBinding binding = mWindowBinding;
         if (binding.packageDiscountPage.root.getVisibility() == View.VISIBLE) {
             closeAllPages();
         } else {
-            float scale = getResources().getDisplayMetrics().density;
-            mWindowLayoutParams.width = (int) (280 * scale + .5f);
+            mWindowLayoutParams.width = WindowManager.LayoutParams.WRAP_CONTENT;
             mWindowLayoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT;
             mWindowManager.updateViewLayout(binding.root, mWindowLayoutParams);
 
@@ -303,7 +305,6 @@ public class FloatingWindowService extends Service {
     }
 
     private void closeAllPages() {
-        Log.d(TAG, "closeAllPages");
         mWindowBinding.packageDiscountPage.root.setVisibility(View.GONE);
 
         float scale = getResources().getDisplayMetrics().density;
