@@ -34,8 +34,10 @@
             android:layout_marginLeft="4dp" />
         <Button
             android:id="@+id/item_action2"
-            style="@style/PackageDiscountTableActionButton"
-            android:layout_marginLeft="1dp" />
+            style="@style/PackageDiscountTableActionButton" />
+        <Button
+            android:id="@+id/item_action3"
+            style="@style/PackageDiscountTableActionButton" />
     </TableRow>
 
 </layout>

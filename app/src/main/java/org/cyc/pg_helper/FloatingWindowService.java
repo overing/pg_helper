@@ -34,6 +34,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.PopupMenu;
 import android.widget.TableLayout;
+import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -41,6 +42,7 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 import org.cyc.pg_helper.databinding.ViewFloatingWindowBinding;
+import org.cyc.pg_helper.databinding.ViewTypeListPageBinding;
 import org.cyc.pg_helper.databinding.ViewGiftPackageDiscountPageBinding;
 import org.cyc.pg_helper.databinding.ViewGiftPackageItemBinding;
 
@@ -140,6 +142,8 @@ public class FloatingWindowService extends Service {
 
         initMenu(popupMenu.getMenu());
 
+        initTypeListPage(binding.typeListPage, inflater);
+
         initPackageDiscountPage(binding.packageDiscountPage, inflater);
 
         popupMenu.setOnDismissListener(m -> {
@@ -196,6 +200,70 @@ public class FloatingWindowService extends Service {
         });
     }
 
+    private void initTypeListPage(ViewTypeListPageBinding packageDiscountPage, LayoutInflater inflater) {
+        JsonReader reader = null;
+        try {
+            InputStream input = getResources().openRawResource(R.raw.type_table);
+            reader = new JsonReader(new InputStreamReader(input, "UTF-8"));
+
+            TableLayout tableLayout = packageDiscountPage.root;
+            Context viewContext = tableLayout.getContext();
+
+            float scale = getResources().getDisplayMetrics().density;
+            TableRow.LayoutParams cellLayoutParams = new TableRow.LayoutParams();
+            cellLayoutParams.width = (int) (20 * scale + .5f);
+            cellLayoutParams.height = (int) (20 * scale + .5f);
+            cellLayoutParams.setMargins(0, 0, -1, -1);
+
+            int cellY = 0;
+            reader.beginArray();
+            while (reader.hasNext()) {
+                TableRow tableRow = new TableRow(viewContext);
+                tableLayout.addView(tableRow);
+
+                int cellX = 0;
+                reader.beginArray();
+                while (reader.hasNext()) {
+                    String value = reader.nextString();
+                    if (value.equals(("強"))) {
+                        value = "●";
+                    } else if (value.equals(("弱"))) {
+                        value = "▼";
+                    } else if (value.equals(("無"))) {
+                        value = "✘";
+                    }
+
+                    TextView textView = new TextView(viewContext);
+                    textView.setGravity(Gravity.CENTER);
+                    textView.setText(value);
+                    textView.setTextSize(12);
+                    textView.setPadding(0, -2, 0, 0);
+                    textView.setBackgroundResource(R.drawable.border_gray);
+                    tableRow.addView(textView, cellLayoutParams);
+
+                    final int x = cellX;
+                    final int y = cellY;
+                    textView.setOnClickListener(v -> onClickTypeTableCell(v, x, y));
+
+                    ++cellX;
+                }
+                reader.endArray();
+
+                ++cellY;
+            }
+            reader.endArray();
+
+            tableLayout.requestLayout();
+        } catch (Exception ex) {
+            Toast.makeText(this, "讀取屬性表發生錯誤: " + ex.getMessage(), Toast.LENGTH_LONG);
+            Log.e(TAG, "Read type table fault", ex);
+        } finally {
+            if (reader != null) {
+                try { reader.close(); } catch (Exception ignore) { }
+            }
+        }
+    }
+
     private void initPackageDiscountPage(ViewGiftPackageDiscountPageBinding packageDiscountPage, LayoutInflater inflater) {
         packageDiscountPage.setDiscount(mGiftPackageDiscount);
 
@@ -207,8 +275,6 @@ public class FloatingWindowService extends Service {
             mGiftPackageDiscount.setRealPrice(0);
         });
 
-        packageDiscountPage.packageCostCloseButton.setOnClickListener(v -> closeAllPages());
-
         packageDiscountPage.realPrice.setOnClickListener(v -> {
             mGiftPackageDiscount.setRealPrice(0);
         });
@@ -218,8 +284,13 @@ public class FloatingWindowService extends Service {
             mGiftPackageDiscount.setRealPrice(mGiftPackageDiscount.getRealPrice() + 1);
         });
 
-        packageDiscountPage.action2.setText("0");
+        packageDiscountPage.action2.setText("+5");
         packageDiscountPage.action2.setOnClickListener(v -> {
+            mGiftPackageDiscount.setRealPrice(mGiftPackageDiscount.getRealPrice() + 5);
+        });
+
+        packageDiscountPage.action3.setText("0");
+        packageDiscountPage.action3.setOnClickListener(v -> {
             mGiftPackageDiscount.setRealPrice(mGiftPackageDiscount.getRealPrice() * 10);
         });
 
@@ -251,8 +322,14 @@ public class FloatingWindowService extends Service {
                     calcGiftPackageTotalPrice();
                 });
 
-                itemBinding.itemAction2.setText("0");
+                itemBinding.itemAction2.setText("+5");
                 itemBinding.itemAction2.setOnClickListener(v -> {
+                    item.setAmount(item.getAmount() + 5);
+                    calcGiftPackageTotalPrice();
+                });
+
+                itemBinding.itemAction3.setText("0");
+                itemBinding.itemAction3.setOnClickListener(v -> {
                     item.setAmount(item.getAmount() * 10);
                     calcGiftPackageTotalPrice();
                 });
@@ -266,6 +343,29 @@ public class FloatingWindowService extends Service {
         } finally {
             if (reader != null) {
                 try { reader.close(); } catch (Exception ignore) { }
+            }
+        }
+    }
+
+    private void onClickTypeTableCell(View v, int x, int y) {
+        TableLayout tableLayout = mWindowBinding.typeListPage.root;
+
+        for (int iy = 0; iy < tableLayout.getChildCount(); iy++) {
+            TableRow tableRow = (TableRow) tableLayout.getChildAt(iy);
+            for (int ix = 0; ix < tableRow.getVirtualChildCount(); ix++) {
+                View view = tableRow.getVirtualChildAt(ix);
+
+                int resId;
+                if (x == 0 && y == 0) {
+                    resId = R.drawable.border_gray;
+                } else if (x == 0) {
+                    resId = iy == y ? R.drawable.border_gray_selected : R.drawable.border_gray;
+                } else if (y == 0) {
+                    resId = ix == x ? R.drawable.border_gray_selected : R.drawable.border_gray;
+                } else {
+                    resId = (x == ix || y == iy) ? R.drawable.border_gray_selected : R.drawable.border_gray;
+                }
+                view.setBackgroundResource(resId);
             }
         }
     }

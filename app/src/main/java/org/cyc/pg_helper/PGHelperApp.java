@@ -30,14 +30,11 @@ public class PGHelperApp extends Application {
     }
 
     public void setFloatingWindowServiceRunning(boolean value) {
-        Log.d(TAG, "setFloatingWindowServiceRunning , " + value);
         mFloatingWindowServiceRunning.set(value);
     }
 
     public boolean isFloatingWindowServiceRunning() {
-        boolean result = mFloatingWindowServiceRunning.get();
-        Log.d(TAG, "isFloatingWindowServiceRunning , " + result);
-        return result;
+        return mFloatingWindowServiceRunning.get();
     }
 
     public boolean ensureFloatingWindow() {
@@ -48,7 +45,7 @@ public class PGHelperApp extends Application {
             return true;
         }
 
-        Toast.makeText(getApplicationContext(), "Please Allow Display Floating Window", Toast.LENGTH_SHORT).show();
+        Toast.makeText(getApplicationContext(), R.string.hint_overlay_permission, Toast.LENGTH_SHORT).show();
         Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);

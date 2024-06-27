@@ -31,17 +31,15 @@
             <Button
                 android:id="@+id/package_cost_reset_button"
                 style="@style/PackageDiscountTableActionButton"
+                android:layout_span="3"
                 android:layout_marginLeft="4dp"
                 android:text="\u21BB" />
-            <Button
-                android:id="@+id/package_cost_close_button"
-                style="@style/PackageDiscountTableActionButton"
-                android:layout_marginLeft="1dp"
-                android:text="X" />
         </TableRow>
 
         <TableRow>
-            <View style="@style/PackageDiscountTableDivider" />
+            <View
+                style="@style/PackageDiscountTableDivider"
+                android:layout_span="6" />
         </TableRow>
 
         <TableRow style="@style/PackageDiscountTableRow">
@@ -77,8 +75,10 @@
                 android:layout_marginLeft="4dp" />
             <Button
                 android:id="@+id/action2"
-                style="@style/PackageDiscountTableActionButton"
-                android:layout_marginLeft="1dp" />
+                style="@style/PackageDiscountTableActionButton" />
+            <Button
+                android:id="@+id/action3"
+                style="@style/PackageDiscountTableActionButton" />
         </TableRow>
 
     </TableLayout>
