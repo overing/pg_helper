@@ -14,6 +14,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.graphics.PixelFormat;
 import android.graphics.RectF;
 import android.net.Uri;
@@ -91,7 +92,7 @@ public class FloatingWindowService extends Service {
         mWindowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
 
         QuickSettingTileService.sendUpdateBroadcast(this);
-        registerReceiver(mReceiver, new IntentFilter(ACTION_CLOSE), Context.RECEIVER_NOT_EXPORTED);
+        registerReceiver(mReceiver, new IntentFilter(ACTION_CLOSE), RECEIVER_NOT_EXPORTED);
     }
 
     @Nullable
@@ -306,10 +307,12 @@ public class FloatingWindowService extends Service {
         int format = PixelFormat.TRANSLUCENT;
         WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams(type, flags, format);
 
+        SharedPreferences prefs = getSharedPreferences("_float_win", MODE_PRIVATE);
+
         float scale = getResources().getDisplayMetrics().density;
         layoutParams.gravity = Gravity.CENTER;
-        layoutParams.x = 0;
-        layoutParams.y = 0;
+        layoutParams.x = prefs.getInt("_win_pos_x", 0);
+        layoutParams.y = prefs.getInt("_win_pos_y", 0);
         layoutParams.width = (int) (64 * scale + .5f);
         layoutParams.height = (int) (64 * scale + .5f);
         return layoutParams;
@@ -321,6 +324,13 @@ public class FloatingWindowService extends Service {
         unregisterReceiver(mReceiver);
         PGHelperApp.from(this).setFloatingWindowServiceRunning(false);
         QuickSettingTileService.sendUpdateBroadcast(this);
+
+        getSharedPreferences("_float_win", MODE_PRIVATE)
+            .edit()
+            .putInt("_win_pos_x", mWindowLayoutParams.x)
+            .putInt("_win_pos_y", mWindowLayoutParams.y)
+            .apply();
+
         super.onDestroy();
     }
 

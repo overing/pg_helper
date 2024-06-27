@@ -17,7 +17,7 @@ public class GiftPackageDiscount extends BaseObservable {
     public float getDiscountRate() { return mTotalPrice > 0 ? (mRealPrice / (float)mTotalPrice) * 100 : 0; }
 
     @Bindable
-    public String getRateFormat() { return "%.2f"; }
+    public String getRateFormat() { return "%.0f"; }
 
     public void setTotalPrice(int totalPrice) {
         mTotalPrice = totalPrice;

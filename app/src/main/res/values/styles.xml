@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="PackageDiscountTableRow">
+        <item name="android:layout_height">22sp</item>
+        <item name="android:layout_margin">0dp</item>
+        <item name="android:padding">0dp</item>
+    </style>
+    <style name="PackageDiscountTableCellText">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">18sp</item>
+        <item name="android:layout_marginTop">0dp</item>
+        <item name="android:layout_marginLeft">4dp</item>
+        <item name="android:paddingTop">0dp</item>
+    </style>
+    <style name="PackageDiscountTableHeadText" parent="PackageDiscountTableCellText">
+        <item name="android:textStyle">bold</item>
+    </style>
+    <style name="PackageDiscountTableNameText" parent="PackageDiscountTableHeadText">
+        <item name="android:gravity">right</item>
+    </style>
+    <style name="PackageDiscountTableValueText" parent="PackageDiscountTableCellText">
+        <item name="android:gravity">right</item>
+    </style>
+    <style name="PackageDiscountTableCalcText" parent="PackageDiscountTableValueText">
+        <item name="android:background">@color/color_calc_field</item>
+    </style>
+    <style name="PackageDiscountTableInputText" parent="PackageDiscountTableValueText">
+        <item name="android:background">@color/color_input_field</item>
+    </style>
+    <style name="PackageDiscountTableActionButton">
+        <item name="android:layout_width">36sp</item>
+        <item name="android:layout_height">30sp</item>
+        <item name="android:layout_marginTop">-2dp</item>
+        <item name="android:layout_marginBottom">-1dp</item>
+        <item name="android:padding">0dp</item>
+    </style>
+    <style name="PackageDiscountTableDivider">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">1dp</item>
+        <item name="android:layout_span">6</item>
+        <item name="android:background">#000000</item>
+    </style>
+    <style name="PackageDiscountTableEmptyCell">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">0dp</item>
+    </style>
+</resources>
