@@ -4,8 +4,13 @@
 ]>
 <resources>
     <string name="app_name">&appname;</string>
+
     <string name="about">&appname;\n
 是一個 Pokemon GO 的輔助工具</string>
+
     <string name="hint_overlay_permission">請允許 &appname; 覆蓋在其他應用程式上方</string>
+    
+    <string name="btn_type_table">屬性克制表</string>
+    <string name="btn_gift_package_discount">禮包折扣計算</string>
     <string name="btn_close">關閉</string>
 </resources>

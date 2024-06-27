@@ -186,15 +186,15 @@ public class FloatingWindowService extends Service {
 
     private void initMenu(Menu mainMenu) {
         int index = Menu.FIRST;
-        mainMenu.add(Menu.NONE, ++index, Menu.NONE, "屬性克制關係").setOnMenuItemClickListener(v -> {
+        mainMenu.add(Menu.NONE, ++index, Menu.NONE, R.string.btn_type_table).setOnMenuItemClickListener(v -> {
             toggleViewPage(mWindowBinding, mWindowBinding.typeListPage.root);
             return true;
         });
-        mainMenu.add(Menu.NONE, ++index, Menu.NONE, "禮包折扣計算").setOnMenuItemClickListener(v -> {
+        mainMenu.add(Menu.NONE, ++index, Menu.NONE, R.string.btn_gift_package_discount).setOnMenuItemClickListener(v -> {
             toggleViewPage(mWindowBinding, mWindowBinding.packageDiscountPage.root);
             return true;
         });
-        mainMenu.add(Menu.NONE, ++index, Menu.NONE, "關閉").setOnMenuItemClickListener(v -> {
+        mainMenu.add(Menu.NONE, ++index, Menu.NONE, R.string.btn_close).setOnMenuItemClickListener(v -> {
             close();
             return true;
         });
@@ -209,49 +209,49 @@ public class FloatingWindowService extends Service {
             TableLayout tableLayout = packageDiscountPage.root;
             Context viewContext = tableLayout.getContext();
 
-            float scale = getResources().getDisplayMetrics().density;
-            TableRow.LayoutParams cellLayoutParams = new TableRow.LayoutParams();
-            cellLayoutParams.width = (int) (20 * scale + .5f);
-            cellLayoutParams.height = (int) (20 * scale + .5f);
-            cellLayoutParams.setMargins(0, 0, -1, -1);
-
-            int cellY = 0;
-            reader.beginArray();
-            while (reader.hasNext()) {
-                TableRow tableRow = new TableRow(viewContext);
-                tableLayout.addView(tableRow);
-
-                int cellX = 0;
-                reader.beginArray();
+            LinkedHashMap<String, String> alias = new LinkedHashMap<String, String>();
+            reader.beginObject();
+            if (reader.nextName().equals("alias")) {
+                reader.beginObject();
                 while (reader.hasNext()) {
-                    String value = reader.nextString();
-                    if (value.equals(("強"))) {
-                        value = "●";
-                    } else if (value.equals(("弱"))) {
-                        value = "▼";
-                    } else if (value.equals(("無"))) {
-                        value = "✘";
+                    alias.put(reader.nextName(), reader.nextString());
+                }
+                reader.endObject();
+            }
+
+            if (reader.nextName().equals("table")) {
+                reader.beginArray();
+                for (int y = 0; reader.hasNext(); y++) {
+                    TableRow tableRow = new TableRow(viewContext);
+                    tableLayout.addView(tableRow);
+
+                    reader.beginArray();
+                    for (int x = 0; reader.hasNext(); x++) {
+                        String value = reader.nextString();
+                        value = alias.getOrDefault(value, value);
+
+                        TableRow.LayoutParams cellLayoutParams = new TableRow.LayoutParams();
+                        cellLayoutParams.width = TableRow.LayoutParams.MATCH_PARENT;
+                        cellLayoutParams.height = TableRow.LayoutParams.MATCH_PARENT;
+                        cellLayoutParams.weight = 1;
+                        cellLayoutParams.setMargins(0, 0, (x < 18) ? -1 : 0, (y < 18) ? -1 : 0); // 讓框線完整重疊
+
+                        TextView textView = new TextView(viewContext);
+                        textView.setGravity(Gravity.CENTER);
+                        textView.setText(value);
+                        textView.setPadding(2, -4, 2, 0);
+                        textView.setBackgroundResource(R.drawable.border_gray);
+                        tableRow.addView(textView, cellLayoutParams);
+
+                        final int cellX = x;
+                        final int cellY = y;
+                        textView.setOnClickListener(v -> onClickTypeTableCell(v, cellX, cellY));
                     }
-
-                    TextView textView = new TextView(viewContext);
-                    textView.setGravity(Gravity.CENTER);
-                    textView.setText(value);
-                    textView.setTextSize(12);
-                    textView.setPadding(0, -2, 0, 0);
-                    textView.setBackgroundResource(R.drawable.border_gray);
-                    tableRow.addView(textView, cellLayoutParams);
-
-                    final int x = cellX;
-                    final int y = cellY;
-                    textView.setOnClickListener(v -> onClickTypeTableCell(v, x, y));
-
-                    ++cellX;
+                    reader.endArray();
                 }
                 reader.endArray();
-
-                ++cellY;
             }
-            reader.endArray();
+            reader.endObject();
 
             tableLayout.requestLayout();
         } catch (Exception ex) {
