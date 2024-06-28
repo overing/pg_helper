@@ -24,7 +24,6 @@ jobs:
 
       - name: Build the app
         run: ./gradlew assembleRelease \
-                -PshowUpdateButton=true \
                 -Pandroid.injected.signing.store.file=${{ steps.android_keystore.outputs.filePath }} \
                 -Pandroid.injected.signing.store.password=${{ secrets.PASSWORD }} \
                 -Pandroid.injected.signing.key.alias=${{ secrets.ALIAS }} \
