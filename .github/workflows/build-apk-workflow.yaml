@@ -1,0 +1,36 @@
+name: Build & Release
+
+on: [pull_request, push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v2
+
+      - name: Set up Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: "temurin"
+          java-version: 17
+
+      - name: Decode Keystore
+        uses: timheuer/base64-to-file@v1
+        id: android_keystore
+        with:
+          fileName: "android_keystore.keystore"
+          encodedString: ${{ secrets.KEYSTORE }}
+
+      - name: Build the app
+        run: ./gradlew assembleRelease \
+                -PshowUpdateButton=true \
+                -Pandroid.injected.signing.store.file=${{ steps.android_keystore.outputs.filePath }} \
+                -Pandroid.injected.signing.store.password=${{ secrets.PASSWORD }} \
+                -Pandroid.injected.signing.key.alias=${{ secrets.ALIAS }} \
+                -Pandroid.injected.signing.key.password=${{ secrets.PASSWORD }}
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/release/app-release.apk
