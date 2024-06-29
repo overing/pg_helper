@@ -21,11 +21,19 @@ android {
         }
     }
 
+    signingConfigs {
+        release {
+            storeFile file('../release-key.jks')
+            storePassword System.getenv('PASSWORD')
+            keyAlias System.getenv('ALIAS')
+            keyPassword System.getenv('PASSWORD')
+        }
+    }
     buildTypes {
         release {
               minifyEnabled false
               proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-              signingConfig signingConfigs.debug
+              signingConfig signingConfigs.release
         }
     }
     compileOptions {

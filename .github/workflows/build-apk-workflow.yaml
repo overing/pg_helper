@@ -9,17 +9,20 @@ jobs:
       - name: Checkout the code
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: "temurin"
           java-version: 17
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Decode Keystore
         uses: timheuer/base64-to-file@v1
         id: android_keystore
         with:
-          fileName: "android_keystore.keystore"
+          fileName: 'release-key.jks'
           encodedString: ${{ secrets.KEYSTORE }}
 
       - name: Build the app
