@@ -25,10 +25,16 @@ jobs:
           fileName: 'release-key.jks'
           encodedString: ${{ secrets.KEYSTORE }}
 
-      - name: Build the app
+      - name: Check envi1
         run: ls -lah .
+
+      - name: Check envi2
         run: ls -lah ..
+
+      - name: Check envi3
         run: pwd
+
+      - name: Build the app
         run: ./gradlew assembleRelease
 
       - name: Release
