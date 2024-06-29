@@ -1,6 +1,9 @@
 name: Build & Release
 
-on: [pull_request, push]
+on:
+  push:
+    tags:
+      - "v*.*.*"
 
 jobs:
   build:
