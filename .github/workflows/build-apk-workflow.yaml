@@ -19,20 +19,21 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Decode Keystore
-        uses: timheuer/base64-to-file@v1
+        uses: timheuer/base64-to-file@v1.2
         id: android_keystore
         with:
           fileName: 'release-key.jks'
+          fileDir: '.'
           encodedString: ${{ secrets.KEYSTORE }}
 
       - name: Check envi1
         run: ls -lah .
 
-      - name: Check envi2
-        run: ls -lah ..
-
       - name: Check envi3
         run: pwd
+
+      - name: Check envi2
+        run: ls -lah ${{ steps.android_keystore.outputs.filePath }}
 
       - name: Build the app
         run: ./gradlew assembleRelease
