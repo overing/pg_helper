@@ -36,6 +36,9 @@ jobs:
         run: ls -lah ${{ steps.android_keystore.outputs.filePath }}
 
       - name: Build the app
+        env:
+          PASSWORD: ${{ secrets.PASSWORD }}
+          ALIAS: ${{ secrets.ALIAS }}
         run: ./gradlew assembleRelease
 
       - name: Release
