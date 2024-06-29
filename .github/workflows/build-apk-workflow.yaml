@@ -26,6 +26,9 @@ jobs:
           encodedString: ${{ secrets.KEYSTORE }}
 
       - name: Build the app
+        run: ls -lah .
+        run: ls -lah ..
+        run: pwd
         run: ./gradlew assembleRelease
 
       - name: Release
