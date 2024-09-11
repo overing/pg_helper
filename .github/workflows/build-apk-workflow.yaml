@@ -37,6 +37,9 @@ jobs:
           ALIAS: ${{ secrets.ALIAS }}
         run: ./gradlew assembleRelease
 
+      - name: Rename the apk file
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/app-release-${{ github.ref_name }}.apk
+
       - name: Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
