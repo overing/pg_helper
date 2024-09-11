@@ -2,6 +2,9 @@ package org.cyc.pg_helper;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.IOException;
+import java.net.URL;
+import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -294,57 +297,91 @@ public class FloatingWindowService extends Service {
             mGiftPackageDiscount.setRealPrice(mGiftPackageDiscount.getRealPrice() * 10);
         });
 
-        int viewIndex = 1;
-        JsonReader reader = null;
+        ArrayList<GiftPackageItem> items;
         try {
-            InputStream input = getResources().openRawResource(R.raw.item_price);
-            reader = new JsonReader(new InputStreamReader(input, "UTF-8"));
+            try {
+                items = readItemsFromWeb();
+            } catch (Exception ex) {
+                Toast.makeText(this, "讀取網路價格表發生錯誤: " + ex.getMessage(), Toast.LENGTH_LONG);
+                Log.e(TAG, "Read web item price table fault", ex);
 
-            reader.beginObject();
-            while (reader.hasNext()) {
-                String name = reader.nextName();
-                int price = reader.nextInt();
-
-                GiftPackageItem item = new GiftPackageItem(name, price);
-                mGiftPackageItems.add(item);
-
-                ViewGiftPackageItemBinding itemBinding = ViewGiftPackageItemBinding.inflate(inflater);
-                itemBinding.setItem(item);
-
-                itemBinding.itemAmount.setOnClickListener(v -> {
-                    item.setAmount(0);
-                    calcGiftPackageTotalPrice();
-                });
-
-                itemBinding.itemAction1.setText("+1");
-                itemBinding.itemAction1.setOnClickListener(v -> {
-                    item.setAmount(item.getAmount() + 1);
-                    calcGiftPackageTotalPrice();
-                });
-
-                itemBinding.itemAction2.setText("+5");
-                itemBinding.itemAction2.setOnClickListener(v -> {
-                    item.setAmount(item.getAmount() + 5);
-                    calcGiftPackageTotalPrice();
-                });
-
-                itemBinding.itemAction3.setText("0");
-                itemBinding.itemAction3.setOnClickListener(v -> {
-                    item.setAmount(item.getAmount() * 10);
-                    calcGiftPackageTotalPrice();
-                });
-
-                packageDiscountPage.root.addView(itemBinding.root, viewIndex++);
+                items = readItemsFromRes();
             }
-            reader.endObject();
         } catch (Exception ex) {
             Toast.makeText(this, "讀取價格表發生錯誤: " + ex.getMessage(), Toast.LENGTH_LONG);
             Log.e(TAG, "Read item price table fault", ex);
-        } finally {
-            if (reader != null) {
-                try { reader.close(); } catch (Exception ignore) { }
-            }
+            return;
         }
+
+        int viewIndex = 1;
+        for (GiftPackageItem item : items) {
+            mGiftPackageItems.add(item);
+
+            ViewGiftPackageItemBinding itemBinding = ViewGiftPackageItemBinding.inflate(inflater);
+            itemBinding.setItem(item);
+
+            itemBinding.itemAmount.setOnClickListener(v -> {
+                item.setAmount(0);
+                calcGiftPackageTotalPrice();
+            });
+
+            itemBinding.itemAction1.setText("+1");
+            itemBinding.itemAction1.setOnClickListener(v -> {
+                item.setAmount(item.getAmount() + 1);
+                calcGiftPackageTotalPrice();
+            });
+
+            itemBinding.itemAction2.setText("+5");
+            itemBinding.itemAction2.setOnClickListener(v -> {
+                item.setAmount(item.getAmount() + 5);
+                calcGiftPackageTotalPrice();
+            });
+
+            itemBinding.itemAction3.setText("0");
+            itemBinding.itemAction3.setOnClickListener(v -> {
+                item.setAmount(item.getAmount() * 10);
+                calcGiftPackageTotalPrice();
+            });
+
+            packageDiscountPage.root.addView(itemBinding.root, viewIndex++);
+        }
+    }
+
+    ArrayList<GiftPackageItem> readItemsFromRes() throws IOException {
+        InputStream input = getResources().openRawResource(R.raw.item_price);
+        ArrayList<GiftPackageItem> items = readItemsFromStream(input);
+        try { input.close(); } catch (Exception ignore) { }
+        return items;
+    }
+
+    static ArrayList<GiftPackageItem> readItemsFromWeb() throws IOException {
+        URL url = new URL("https://overing.github.io/pg_helper/app/src/main/res/raw/item_price.json");
+        HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+        urlConnection.setRequestMethod("GET");
+        urlConnection.connect();
+
+        InputStream input = url.openStream();
+        ArrayList<GiftPackageItem> items = readItemsFromStream(input);
+        try { input.close(); } catch (Exception ignore) { }
+        return items;
+    }
+
+    static ArrayList<GiftPackageItem> readItemsFromStream(InputStream stream) throws IOException {
+        ArrayList<GiftPackageItem> items = new ArrayList<GiftPackageItem>();
+
+        JsonReader reader = new JsonReader(new InputStreamReader(stream, "UTF-8"));
+        reader.beginObject();
+        while (reader.hasNext()) {
+            String name = reader.nextName();
+            int price = reader.nextInt();
+
+            GiftPackageItem item = new GiftPackageItem(name, price);
+            items.add(item);
+        }
+        reader.endObject();
+        try { reader.close(); } catch (Exception ignore) { }
+
+        return items;
     }
 
     private void onClickTypeTableCell(View v, int x, int y) {
