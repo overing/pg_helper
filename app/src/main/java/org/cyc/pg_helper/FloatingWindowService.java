@@ -5,9 +5,10 @@ import java.io.InputStreamReader;
 import java.io.IOException;
 import java.net.URL;
 import java.net.HttpURLConnection;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.concurrent.Executors;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -135,7 +136,7 @@ public class FloatingWindowService extends Service {
 
     private void initUi() {
         LayoutInflater inflater = LayoutInflater.from(getApplicationContext());
-        ViewFloatingWindowBinding binding = mWindowBinding = ViewFloatingWindowBinding.inflate(inflater);
+        final ViewFloatingWindowBinding binding = mWindowBinding = ViewFloatingWindowBinding.inflate(inflater);
         mWindowLayoutParams = buildLayoutParams();
         mWindowManager.addView(binding.root, mWindowLayoutParams);
 
@@ -152,12 +153,14 @@ public class FloatingWindowService extends Service {
         initPackageDiscountPage(binding.packageDiscountPage, inflater);
 
         popupMenu.setOnDismissListener(m -> {
-            mWindowBinding.toggleButton.setChecked(false);
+            if (binding.toggleButton != null) {
+                binding.toggleButton.setChecked(false);
+            }
         });
     }
 
     private void initToggle(PopupMenu popupMenu) {
-        ViewFloatingWindowBinding binding = mWindowBinding;
+        final ViewFloatingWindowBinding binding = mWindowBinding;
         final RectF touchOffset = new RectF();
         final Handler handler = new Handler(Looper.getMainLooper());
         binding.toggleButton.setOnCheckedChangeListener((v, checked) -> {
@@ -168,7 +171,7 @@ public class FloatingWindowService extends Service {
 
                 popupMenu.show();
 
-                handler.postDelayed(() -> mWindowBinding.toggleButton.setChecked(false), 6000);
+                handler.postDelayed(() -> binding.toggleButton.setChecked(false), 6000);
             } else {
                 popupMenu.dismiss();
             }
@@ -182,7 +185,7 @@ public class FloatingWindowService extends Service {
                 case MotionEvent.ACTION_MOVE:
                     mWindowLayoutParams.x = (int) (touchOffset.left - touchOffset.right + e.getRawX());
                     mWindowLayoutParams.y = (int) (touchOffset.top - touchOffset.bottom + e.getRawY());
-                    mWindowManager.updateViewLayout(mWindowBinding.root, mWindowLayoutParams);
+                    mWindowManager.updateViewLayout(binding.root, mWindowLayoutParams);
                     break;
             }
             return false;
@@ -190,13 +193,14 @@ public class FloatingWindowService extends Service {
     }
 
     private void initMenu(Menu mainMenu) {
+        final ViewFloatingWindowBinding binding = mWindowBinding;
         int index = Menu.FIRST;
         mainMenu.add(Menu.NONE, ++index, Menu.NONE, R.string.btn_type_table).setOnMenuItemClickListener(v -> {
-            toggleViewPage(mWindowBinding, mWindowBinding.typeListPage.root);
+            toggleViewPage(binding, binding.typeListPage.root);
             return true;
         });
         mainMenu.add(Menu.NONE, ++index, Menu.NONE, R.string.btn_gift_package_discount).setOnMenuItemClickListener(v -> {
-            toggleViewPage(mWindowBinding, mWindowBinding.packageDiscountPage.root);
+            toggleViewPage(binding, binding.packageDiscountPage.root);
             return true;
         });
         mainMenu.add(Menu.NONE, ++index, Menu.NONE, R.string.btn_close).setOnMenuItemClickListener(v -> {
@@ -300,22 +304,33 @@ public class FloatingWindowService extends Service {
             mGiftPackageDiscount.setRealPrice(mGiftPackageDiscount.getRealPrice() * 10);
         });
 
-        ArrayList<GiftPackageItem> items;
-        try {
+        final Handler mainHandler = new Handler(getMainLooper());
+        Executors.newFixedThreadPool(1).submit(() -> {
             try {
-                items = readItemsFromWeb();
-            } catch (Exception ex) {
-                Toast.makeText(this, "讀取網路價格表發生錯誤: " + ex.getMessage(), Toast.LENGTH_LONG);
-                Log.e(TAG, "Read web item price table fault", ex);
+                ArrayList<GiftPackageItem> items = readItemsFromWeb();
 
-                items = readItemsFromRes();
+                mainHandler.post(() -> {
+                    setGiftPackageItems(items);
+                });
+            } catch (Exception netEx) {
+                Toast.makeText(this, "讀取網路價格表發生錯誤: " + netEx.getMessage(), Toast.LENGTH_LONG);
+                Log.e(TAG, "Read web item price table fault", netEx);
+
+                mainHandler.post(() -> {
+                    try {
+                        ArrayList<GiftPackageItem> items = readItemsFromRes();
+                        setGiftPackageItems(items);
+                    } catch (Exception ex) {
+                        Toast.makeText(this, "讀取價格表發生錯誤: " + ex.getMessage(), Toast.LENGTH_LONG);
+                        Log.e(TAG, "Read item price table fault", ex);
+                    }
+                });
             }
-        } catch (Exception ex) {
-            Toast.makeText(this, "讀取價格表發生錯誤: " + ex.getMessage(), Toast.LENGTH_LONG);
-            Log.e(TAG, "Read item price table fault", ex);
-            return;
-        }
+        });
+    }
 
+    private void setGiftPackageItems(ArrayList<GiftPackageItem> items) {
+        LayoutInflater inflater = LayoutInflater.from(getApplicationContext());
         int viewIndex = 1;
         for (GiftPackageItem item : items) {
             mGiftPackageItems.add(item);
@@ -346,7 +361,7 @@ public class FloatingWindowService extends Service {
                 calcGiftPackageTotalPrice();
             });
 
-            packageDiscountPage.root.addView(itemBinding.root, viewIndex++);
+            mWindowBinding.packageDiscountPage.root.addView(itemBinding.root, viewIndex++);
         }
     }
 
@@ -485,7 +500,6 @@ public class FloatingWindowService extends Service {
         stopSelf();
         mWindowManager.removeView(mWindowBinding.root);
         mGiftPackageDiscount = null;
-        mWindowLayoutParams = null;
         mWindowBinding = null;
         mGiftPackageItems.clear();
     }
