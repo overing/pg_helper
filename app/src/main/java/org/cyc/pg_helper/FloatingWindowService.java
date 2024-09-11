@@ -65,7 +65,7 @@ public class FloatingWindowService extends Service {
     private ViewFloatingWindowBinding mWindowBinding;
     private WindowManager.LayoutParams mWindowLayoutParams;
 
-    private GiftPackageDiscount mGiftPackageDiscount = new GiftPackageDiscount();
+    private GiftPackageDiscount mGiftPackageDiscount;
 
     private ArrayList<GiftPackageItem> mGiftPackageItems = new ArrayList<GiftPackageItem>();
 
@@ -270,6 +270,7 @@ public class FloatingWindowService extends Service {
     }
 
     private void initPackageDiscountPage(ViewGiftPackageDiscountPageBinding packageDiscountPage, LayoutInflater inflater) {
+        mGiftPackageDiscount = new GiftPackageDiscount();
         packageDiscountPage.setDiscount(mGiftPackageDiscount);
 
         packageDiscountPage.packageCostResetButton.setOnClickListener(v -> {
@@ -483,5 +484,9 @@ public class FloatingWindowService extends Service {
     private void close() {
         stopSelf();
         mWindowManager.removeView(mWindowBinding.root);
+        mGiftPackageDiscount = null;
+        mWindowLayoutParams = null;
+        mWindowBinding = null;
+        mGiftPackageItems.clear();
     }
 }
