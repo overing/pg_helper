@@ -5,6 +5,8 @@ import java.io.InputStreamReader;
 import java.io.IOException;
 import java.net.URL;
 import java.net.HttpURLConnection;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -355,7 +357,9 @@ public class FloatingWindowService extends Service {
     }
 
     static ArrayList<GiftPackageItem> readItemsFromWeb() throws IOException {
-        URL url = new URL("https://overing.github.io/pg_helper/app/src/main/res/raw/item_price.json");
+        String urlStr = "https://overing.github.io/pg_helper/app/src/main/res/raw/item_price.json";
+        urlStr += "?t=" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMddHHmmss"));
+        URL url = new URL(urlStr);
         HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
         urlConnection.setRequestMethod("GET");
         urlConnection.setRequestProperty("Cache-Control", "no-cache");
