@@ -363,9 +363,11 @@ public class FloatingWindowService extends Service {
         urlConnection.setUseCaches(false);
         urlConnection.connect();
 
-        InputStream input = url.openStream();
+        InputStream input = urlConnection.getInputStream();
         ArrayList<GiftPackageItem> items = readItemsFromStream(input);
+
         try { input.close(); } catch (Exception ignore) { }
+        urlConnection.disconnect();
         return items;
     }
 
