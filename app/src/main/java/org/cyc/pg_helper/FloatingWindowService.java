@@ -358,6 +358,9 @@ public class FloatingWindowService extends Service {
         URL url = new URL("https://overing.github.io/pg_helper/app/src/main/res/raw/item_price.json");
         HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
         urlConnection.setRequestMethod("GET");
+        urlConnection.setRequestProperty("Cache-Control", "no-cache");
+        urlConnection.setDefaultUseCaches(false);
+        urlConnection.setUseCaches(false);
         urlConnection.connect();
 
         InputStream input = url.openStream();
